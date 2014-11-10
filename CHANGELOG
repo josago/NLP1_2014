@@ -1,0 +1,12 @@
+10/11/2014:
+
+- Added two scripts to crawl the IMDb website:
+    - "movie_url_crawler.pl" gets the URLs of movies and stores it within the "movies.txt" file, taking care not to include duplicates.
+    - "movie_content_crawler.pl" takes URLs from "movies.txt" and crawls their information from IMDb, storing it within "database.csv" in a tabular-spaced format. Currently, the following fields are stored:
+        - Title
+        - Year
+        - IMDb score
+        - Parental rating
+        - Director
+        - Main stars
+        - Summary
