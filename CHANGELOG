@@ -1,3 +1,8 @@
+17/11/2014:
+
+- Added a fully functional neural network to model the problem.
+- Added a movie script parser as well as 724 movie scripts downloaded from IMSDb using it.
+
 10/11/2014:
 
 - Added two scripts to crawl the IMDb website:

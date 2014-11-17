@@ -122,6 +122,19 @@ class MovieModel:
         
         return (scores, topics)
     
+    def error(self, Ilang, Igen, S):
+        N = Ilang.shape[0]
+        
+        (scores, _) = self.evaluate(Ilang, Igen)
+        
+        rms = 0.0
+        
+        for i in range(N):
+            rms += (scores[i] - S[i]) ** 2
+
+        return np.sqrt(rms / N)[0]
+        
+    
     def dump2file(self, filename):
         print "Dumping movie model into '%s'..." % filename
         
@@ -155,3 +168,5 @@ mm = model_from_file("MovieModel.pkl")
 
 print scores
 print topics
+
+print mm.error(Ilang, Igen, S)
