@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use LWP::Simple;
+use Lingua::Stem::En; # Install executing within CPAN: "install Lingua::Stem"
 
 my %DATABASE; # Final database with all the information.
 
@@ -106,6 +107,8 @@ sub populateDB
             {
                 $DATABASE{$name}{$_} = $attributes{$_};
             }
+            
+            makeScriptFeatures();
         }
     }
 
@@ -131,6 +134,10 @@ sub makeScriptFeatures
         {
             my $token = lc($_); # Token to lowercase.
             
+            my @array = ($token);
+            
+            $token = Lingua::Stem::En::stem({-words => \@array, -locale => 'en'})->[0]; # Porter's stemmer.
+
             $DATABASE{$name}{'FEATURES_SCRIPT'}{$token}++;
         }
         
@@ -144,7 +151,7 @@ sub makeScriptFeatures
 
     foreach my $word (keys %words_global)
     {
-        if ($words_global{$word} >= 25000 or $words_films{$word} <= 1) # Word prunning rules.
+        if ($words_global{$word} >= 100000 or $words_films{$word} <= 1) # Word prunning rules.
         {
             print "\tPrunning word '$word'...\n";
         

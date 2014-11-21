@@ -1,3 +1,9 @@
+21/11/2014:
+
+- MovieModel.py can now load a database from disk and be trained and tested on it.
+- Lowered the initial noise on the weights of MovieModel so that the output doesn't saturate.
+- MakeDatabase.pl now makes use of the Porter's stemmer, since otherwise the number of language features generated becomes too high (~65K without it).
+
 20/11/2014:
 
 - Added script MakeDatabase.pl, which also contains the previous FeaturesCrawler.pl.

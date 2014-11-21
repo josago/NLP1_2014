@@ -11,6 +11,62 @@ import theano.tensor as T
 import numpy         as np
 import numpy.random  as rd
 
+def load_database(filename, prob_train = 0.8):
+    Ilang_train = np.array([])
+    Igen_train  = np.array([])
+    S_train     = np.array([])
+    
+    Ilang_test  = np.array([])
+    Igen_test   = np.array([])
+    S_test      = np.array([])
+    
+    print "Reading movie database from '%s'..." % filename
+        
+    f = open(filename, "r")
+    
+    content = f.readlines()
+        
+    f.close()
+    
+    L = None # Number of language features.
+    
+    for line in content:
+        (title, score, features) = line.rsplit("\t") # TODO: Update as the file format of the database changes.
+        
+        try:
+            score    = np.reshape(float(score), (1))
+            features = np.reshape(np.array(features.split(",")), (1, -1))
+            
+            if L is None or features.shape[1] == L: # Skips badly-shaped entries.
+                L = features.shape[1]
+                
+                if rd.uniform() < prob_train:
+                    if Ilang_train.shape[0] == 0: # Empty matrix.
+                        Ilang_train = features
+                        S_train     = score
+                    else:
+                        Ilang_train = np.append(Ilang_train, features, axis = 0)
+                        S_train     = np.append(S_train, score)
+                else:
+                    if Ilang_test.shape[0] == 0: # Empty matrix.
+                        Ilang_test = features
+                        S_test     = score
+                    else:
+                        Ilang_test = np.append(Ilang_test, features, axis = 0)
+                        S_test     = np.append(S_test, score)
+
+        except ValueError:
+            pass # Simply ignore the entry.
+    
+    Igen_train = np.zeros((Ilang_train.shape[0], 0), dtype = np.float32) # TODO: Temporal.
+    
+    Igen_test  = np.zeros((Ilang_test.shape[0], 0),  dtype = np.float32) # TODO: Temporal.
+    
+    S_train = np.reshape(S_train, (-1, 1))
+    S_test  = np.reshape(S_test,  (-1, 1))
+    
+    return (Ilang_train, Igen_train, S_train, Ilang_test, Igen_test, S_test)
+
 def model_from_file(filename):
     print "Reading movie model from '%s'..." % filename
         
@@ -23,7 +79,7 @@ def model_from_file(filename):
     return model
 
 class MovieModel:
-    def __init__(self, num_lang_inputs, num_gen_inputs, num_topics, SIGMA = 10E-2):
+    def __init__(self, num_lang_inputs, num_gen_inputs, num_topics, SIGMA = 10E-6):
         self.num_lang_inputs = num_lang_inputs
         self.num_gen_inputs  = num_gen_inputs
         self.num_topics      = num_topics
@@ -83,7 +139,7 @@ class MovieModel:
         self.g_Wt = T.grad(self.obj_out, self.Wt)
         self.g_B2 = T.grad(self.obj_out, self.B2)
         
-    def pretrain(self, Ilang, eta = 10E-6, num_epochs = 1000):
+    def pretrain(self, Ilang, eta = 10E-6, num_epochs = 10):
         N = Ilang.shape[0]
         
         print "Pre-training movie model with %i inputs for %i epochs..." % (N, num_epochs)
@@ -98,7 +154,7 @@ class MovieModel:
                 
                 v_param.set_value(v_param.get_value() - eta * f(self.v_W1.get_value(), self.v_B1.get_value(), self.v_Wauto.get_value(), self.v_Bauto.get_value(), Ilang))
         
-    def train(self, Ilang, Igen, S, eta = 10E-6, num_epochs = 1000):
+    def train(self, Ilang, Igen, S, eta = 10E-6, num_epochs = 10):
         N = Ilang.shape[0]
         
         print "Training movie model with %i inputs for %i epochs..." % (N, num_epochs)
@@ -143,19 +199,23 @@ class MovieModel:
         pickle.dump(self, f)
         
         f.close()
+        
+# Loading the database:
+
+(Ilang_train, Igen_train, S_train, Ilang_test, Igen_test, S_test) = load_database("database.csv")
+
+num_lang_inputs = Ilang_train.shape[1]
+num_gen_inputs  = Igen_train.shape[1]
+num_topics      = 50
 
 # Initializing the model:
 
-mm = MovieModel(8000, 10, 50) # MovieModel(num_lang_inputs, num_gen_inputs, num_topics)
+mm = MovieModel(num_lang_inputs, num_gen_inputs, num_topics)
 
 # Training the model:
 
-Ilang = np.zeros((27, 8000), dtype = np.int16)      # TODO: Use real language features!
-Igen  = np.zeros((27, 10),   dtype = np.float32)    # TODO: Use real general movie features!
-S     = np.float32(rd.uniform(size = (27, 1))) * 10 # TODO: Use real movie scores!
-
-mm.pretrain(Ilang)       
-mm.train(Ilang, Igen, S)
+mm.pretrain(Ilang_train)       
+mm.train(Ilang_train, Igen_train, S_train)
 
 # Saving and loading the model:
 
@@ -164,9 +224,9 @@ mm = model_from_file("MovieModel.pkl")
 
 # Evaluating the model:
 
-(scores, topics) = mm.evaluate(Ilang, Igen)
+(scores, topics) = mm.evaluate(Ilang_test, Igen_test)
 
 print scores
 print topics
 
-print mm.error(Ilang, Igen, S)
+print mm.error(Ilang_test, Igen_test, S_test)
