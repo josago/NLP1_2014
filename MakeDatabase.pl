@@ -107,8 +107,6 @@ sub populateDB
             {
                 $DATABASE{$name}{$_} = $attributes{$_};
             }
-            
-            makeScriptFeatures();
         }
     }
 
@@ -151,7 +149,7 @@ sub makeScriptFeatures
 
     foreach my $word (keys %words_global)
     {
-        if ($words_global{$word} >= 100000 or $words_films{$word} <= 1) # Word prunning rules.
+        if ($words_global{$word} >= 100000 or $words_global{$word} <= 10 or $words_films{$word} <= 1) # Word prunning rules.
         {
             print "\tPrunning word '$word'...\n";
         
@@ -172,13 +170,24 @@ sub writeDB
 {
     my ($words_global, $words_films) = @_;
 
+    open(my $tokens, '>', 'tokens.txt') or die "Could not write into file 'tokens.txt': $!\n";
+    
+    my @list_tokens = keys %{$words_global};
+    
+    foreach my $word (@list_tokens)
+    {
+        print $tokens "$word\n";
+    }
+    
+    close($tokens);
+    
     open(my $database, '>', 'database.csv') or die "Could not write into file 'database.csv': $!\n";
     
     foreach my $name (keys %DATABASE)
     {
         my $features_script = '';
 
-        foreach my $word (keys %{$words_global})
+        foreach my $word (@list_tokens)
         {
             if (exists $DATABASE{$name}{'FEATURES_SCRIPT'}{$word})
             {
