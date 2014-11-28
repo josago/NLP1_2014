@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use LWP::Simple;
-use Lingua::Stem::En; # Install executing within CPAN: "install Lingua::Stem"
+use Lingua::Stem::Any; # Install executing within CPAN: "install Lingua::Stem::Any"
 
 my %DATABASE; # Final database with all the information.
 
@@ -99,14 +99,14 @@ sub populateDB
         
             $DATABASE{$name}{'SCRIPT'} = $script;
         
-            print "\tCrawling IMDb for more information about the movie...\n";
-            
-            my %attributes = crawlIMDb($name);
-            
-            foreach (keys %attributes)
-            {
-                $DATABASE{$name}{$_} = $attributes{$_};
-            }
+#             print "\tCrawling IMDb for more information about the movie...\n";
+#             
+#             my %attributes = crawlIMDb($name);
+#             
+#             foreach (keys %attributes)
+#             {
+#                 $DATABASE{$name}{$_} = $attributes{$_};
+#             }
         }
     }
 
@@ -118,6 +118,11 @@ sub makeScriptFeatures
     my %words_global; # Number of occurrences of each word.
     my %words_films;  # Number of times each word appears at least once in a movie.
     
+    my $stemmer = Lingua::Stem::Any->new(
+        language => 'en',
+        source   => 'Lingua::Stem::Snowball',
+    );
+
     print "Making movie script features...\n";
     
     foreach my $name (keys %DATABASE)
@@ -126,15 +131,13 @@ sub makeScriptFeatures
     
         $DATABASE{$name}{'SCRIPT'} =~ s/<[^<>]+?>//g; # Get rid of HTML tags.
         
-        my @script_tokens = split(/[\s,;\.:\-!\(\)\"\?\/_\[\]]+/s, $DATABASE{$name}{'SCRIPT'});
+        my @script_tokens = split(/[\s,;\.:\-!\(\)\"'\?\/_\[\]\*]+/s, $DATABASE{$name}{'SCRIPT'});
         
         foreach (@script_tokens)
         {
             my $token = lc($_); # Token to lowercase.
             
-            my @array = ($token);
-            
-            $token = Lingua::Stem::En::stem({-words => \@array, -locale => 'en'})->[0]; # Porter's stemmer.
+            $token = $stemmer->stem($token); # Use stemmer.
 
             $DATABASE{$name}{'FEATURES_SCRIPT'}{$token}++;
         }
@@ -146,12 +149,50 @@ sub makeScriptFeatures
             $words_films{$word}++;
         }
     }
+    
+    print "No stop-list:\n";
+    
+    my $sum = 0;
+    
+    foreach (keys %words_global)
+    {
+        $sum += $words_global{$_};
+    }
 
+    print "\tTotal words = $sum\n";
+    print "\tTotal unique words = " . scalar(keys %words_global) . "\n";
+    
+    print "With stop-list:\n";
+    
+    my @stoplist = ('a', 'o', 'm', 's', 't', 'v', 'an', 'as', 'and', 'by', 'or', 'but', 'the', 'in', 'of', 'at', 'to', 'on', 'for', 'it', 'that', 'is', 'are', 're', 'with');
+
+    foreach my $word (@stoplist)
+    {
+        $word = $stemmer->stem($word); # Use stemmer also on the stop-words.
+    
+        $sum -= $words_global{$word};
+    
+        delete $words_global{$word};
+        delete $words_films{$word};
+        
+        foreach my $name (keys %DATABASE)
+        {
+            delete $DATABASE{$name}{'FEATURES_SCRIPT'}{$word};
+        }
+    }
+    
+    print "\tTotal words = $sum\n";
+    print "\tTotal unique words = " . scalar(keys %words_global) . "\n";
+
+    print "With prunning:\n";
+    
     foreach my $word (keys %words_global)
     {
-        if ($words_global{$word} >= 100000 or $words_global{$word} <= 10 or $words_films{$word} <= 1) # Word prunning rules.
+        if ($words_films{$word} <= 1 or $words_global{$word} <= 1 or $word =~ /^\d+$/) # Word prunning rules.
         {
-            print "\tPrunning word '$word'...\n";
+#             print "\tPrunning word '$word'...\n";
+        
+            $sum -= $words_global{$word};
         
             delete $words_global{$word};
             delete $words_films{$word};
@@ -162,6 +203,16 @@ sub makeScriptFeatures
             }
         }
     }
+    
+    print "\tTotal words = $sum\n";
+    print "\tTotal unique words = " . scalar(keys %words_global) . "\n";
+    
+#     my @words = sort {$words_global{$a} <=> $words_global{$b}} keys %words_global;
+#     
+#     for my $word (@words)
+#     {
+#         print "$word -> $words_global{$word}\n";
+#     }
     
     return (\%words_global, \%words_films);
 }
@@ -211,4 +262,4 @@ sub writeDB
 
 populateDB();
 my ($words_global, $words_films) = makeScriptFeatures();
-writeDB($words_global, $words_films);
+# writeDB($words_global, $words_films);

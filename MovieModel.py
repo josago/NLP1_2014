@@ -142,7 +142,7 @@ class MovieModel:
         self.g_Wt  = T.grad(self.obj_out, self.Wt)
         self.g_B2  = T.grad(self.obj_out, self.B2)
         
-    def pretrain(self, Ilang, eta = 10E-6, num_epochs = 50):
+    def pretrain(self, Ilang, eta = 10E-6, num_epochs = 30):
         N = Ilang.shape[0]
         
         print "Pre-training movie model with %i inputs for %i epochs..." % (N, num_epochs)
@@ -150,14 +150,14 @@ class MovieModel:
         params = [(self.W1, self.v_W1, self.g_W1), (self.B1, self.v_B1, self.g_B1), (self.Wauto, self.v_Wauto, self.g_Wauto), (self.Bauto, self.v_Bauto, self.g_Bauto)]
         
         for epoch in range(num_epochs):
-            print "\tEpoch %i..." % int(epoch + 1)
+            #print "\tEpoch %i..." % int(epoch + 1)
             
             for (param, v_param, g_param) in params:
                 f = function([self.W1, self.B1, self.Wauto, self.Bauto, self.Ilang], g_param, allow_input_downcast = True)
                 
                 v_param.set_value(v_param.get_value() - eta * f(self.v_W1.get_value(), self.v_B1.get_value(), self.v_Wauto.get_value(), self.v_Bauto.get_value(), Ilang))
         
-    def train(self, Ilang_train, Igen_train, S_train, Ilang_test, Igen_test, S_test, eta = 10E-6, num_epochs = 50):
+    def train(self, Ilang_train, Igen_train, S_train, Ilang_test, Igen_test, S_test, eta = 10E-6, num_epochs = 30):
         N = Ilang_train.shape[0]
         
         print "Training movie model with %i inputs for %i epochs..." % (N, num_epochs)
@@ -168,7 +168,7 @@ class MovieModel:
         error_test  = []
         
         for epoch in range(num_epochs):
-            print "\tEpoch %i..." % int(epoch + 1)
+            #print "\tEpoch %i..." % int(epoch + 1)
             
             for (param, v_param, g_param) in params:
                 f = function([self.W1, self.B1, self.Wi, self.Wt, self.B2, self.Ilang, self.Igen, self.S], g_param, allow_input_downcast = True)
@@ -209,37 +209,46 @@ class MovieModel:
 
 num_lang_inputs = Ilang_train.shape[1]
 num_gen_inputs  = Igen_train.shape[1]
-num_topics      = 50
+
+print "Training with %i samples and testing with %i samples..." % (S_train.shape[0], S_test.shape[0])
+
+# Show a histogram of movie scores:
 
 #plt.hist(np.append(S_train, S_test, axis = 0).flatten(), 40)
 #plt.xticks(range(0, 11))
 #plt.show()
 
-# Initializing the model:
+NUM_TRIALS = 5
 
-mm = MovieModel(num_lang_inputs, num_gen_inputs, num_topics)
+for num_topics in (32, 64, 128, 256, 512, 1024, 2048, 4096):
+    ERROR_TEST = None
+    
+    for it in range(NUM_TRIALS):
+        # Initializing the model:
 
-# Training the model:
+        mm = MovieModel(num_lang_inputs, num_gen_inputs, num_topics)
 
-mm.pretrain(Ilang_train)       
-(error_train, error_test) = mm.train(Ilang_train, Igen_train, S_train, Ilang_test, Igen_test, S_test)
+        # Training and evaluating the model:
 
-# Saving and loading the model:
+        mm.pretrain(Ilang_train)       
+        (error_train, error_test) = mm.train(Ilang_train, Igen_train, S_train, Ilang_test, Igen_test, S_test)
 
-mm.dump2file("MovieModel.pkl")
-mm = model_from_file("MovieModel.pkl")
+        if ERROR_TEST is None:
+            ERROR_TEST  = np.array(error_test)
+        else:
+            ERROR_TEST += np.array(error_test)
 
-# Evaluating the model:
+        # Saving and loading the model:
 
-plt.hold(True)
-plt.plot(error_train, label = "Average error (training set, %i movies)" % S_train.shape[0])
-plt.plot(error_test,  label = "Average error (testing set, %i movies)" % S_test.shape[0])
-plt.legend()
+        mm.dump2file("MovieModel_%i.pkl" % num_topics)
+        #mm = model_from_file("MovieModel.pkl")
+
+    # Plotting the results:
+    
+    print ERROR_TEST / NUM_TRIALS
+
+    plt.hold(True)
+    plt.plot(ERROR_TEST / NUM_TRIALS, label = "Average absolute error (%i topics)" % num_topics)
+    plt.legend()
+
 plt.show()
-
-#(scores, topics) = mm.evaluate(Ilang_test, Igen_test)
-
-#print scores
-#print topics
-
-#print mm.error(Ilang_test, Igen_test, S_test)
