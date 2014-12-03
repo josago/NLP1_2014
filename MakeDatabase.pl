@@ -22,48 +22,53 @@ sub crawlIMDb
 
     $code = get("http://www.imdb.com/title/tt$number");
     
-    $code =~ /<span class=\"itemprop\" itemprop=\"name\">(.+?)<\/span>/s;
-
-    $attributes{'NAME'} = $1;
+#     $code =~ /<span class=\"itemprop\" itemprop=\"name\">(.+?)<\/span>/s;
+# 
+#     $attributes{'NAME'} = $1;
     
-    $code =~ /<a href=\"\/year\/(\d{4})\/\?ref_=tt_ov_inf\"/s;
+#     $code =~ /<a href=\"\/year\/(\d{4})\/\?ref_=tt_ov_inf\"/s;
+#     
+#     $attributes{'YEAR'} = $1;
     
-    $attributes{'YEAR'} = $1;
-    
-    $code =~ /<span itemprop=\"ratingValue\">([\d\.]+?)<\/span>/s;
-    
-    $attributes{'SCORE'} = $1;
-    
-    if ($code =~ /<span itemprop=\"contentRating\">(.+?)<\/span>/s)
+    if ($code =~ /<span itemprop=\"ratingValue\">([\d\.]+?)<\/span>/s)
     {
-        $attributes{'RATING'} = $1;
+        $attributes{'SCORE'} = $1;
+    }
+    else
+    {
+        return undef;
     }
     
-    $code =~ /itemprop=\"director\".+?itemprop=\"name\">(.+?)<\/span>/s;
+#     if ($code =~ /<span itemprop=\"contentRating\">(.+?)<\/span>/s)
+#     {
+#         $attributes{'RATING'} = $1;
+#     }
     
-    $attributes{'DIRECTOR'} = $1;
+#     $code =~ /itemprop=\"director\".+?itemprop=\"name\">(.+?)<\/span>/s;
+#     
+#     $attributes{'DIRECTOR'} = $1;
     
     $code =~ /<div class="inline canwrap" itemprop="description">.*?<p>(.+?)<em class="nobr">/s;
     
     $attributes{'SUMMARY'} = $1;
     
-    $code =~ /<h4 class=\"inline\">Stars\:<\/h4>.*?itemprop=\"name\">(.+?)<\/span><\/a>(.*?itemprop=\"name\">(.+?)<\/span><\/a>)?(.*?itemprop=\"name\">(.+?)<\/span><\/a>)?.*?<span class=\"ghost\">/s;
-    
-    unless ($5)
-    {
-        unless ($3)
-        {
-            $attributes{'STARS'} = $1;
-        }
-        else
-        {
-            $attributes{'STARS'} = "$1,$3";
-        }
-    }
-    else
-    {
-        $attributes{'STARS'} = "$1,$3,$5";
-    }
+#     $code =~ /<h4 class=\"inline\">Stars\:<\/h4>.*?itemprop=\"name\">(.+?)<\/span><\/a>(.*?itemprop=\"name\">(.+?)<\/span><\/a>)?(.*?itemprop=\"name\">(.+?)<\/span><\/a>)?.*?<span class=\"ghost\">/s;
+#     
+#     unless ($5)
+#     {
+#         unless ($3)
+#         {
+#             $attributes{'STARS'} = $1;
+#         }
+#         else
+#         {
+#             $attributes{'STARS'} = "$1,$3";
+#         }
+#     }
+#     else
+#     {
+#         $attributes{'STARS'} = "$1,$3,$5";
+#     }
     
     return %attributes;
 }
@@ -99,14 +104,21 @@ sub populateDB
         
             $DATABASE{$name}{'SCRIPT'} = $script;
         
-#             print "\tCrawling IMDb for more information about the movie...\n";
-#             
-#             my %attributes = crawlIMDb($name);
-#             
-#             foreach (keys %attributes)
-#             {
-#                 $DATABASE{$name}{$_} = $attributes{$_};
-#             }
+            print "\tCrawling IMDb for more information about the movie...\n";
+            
+            my %attributes = crawlIMDb($name);
+            
+            if (%attributes ~~ undef)
+            {
+                delete $DATABASE{$name};
+            }
+            else
+            {
+                foreach (keys %attributes)
+                {
+                    $DATABASE{$name}{$_} = $attributes{$_};
+                }
+            }
         }
     }
 
@@ -123,30 +135,38 @@ sub makeScriptFeatures
         source   => 'Lingua::Stem::Snowball',
     );
 
-    print "Making movie script features...\n";
-    
+    print "Making movie language features...\n";
+
     foreach my $name (keys %DATABASE)
     {
-        $DATABASE{$name}{'FEATURES_SCRIPT'} = {};
-    
-        $DATABASE{$name}{'SCRIPT'} =~ s/<[^<>]+?>//g; # Get rid of HTML tags.
+        my @stuff = ('FEATURES_SCRIPT', 'SCRIPT', 'FEATURES_SUMMARY', 'SUMMARY');
         
-        my @script_tokens = split(/[\s,;\.:\-!\(\)\"'\?\/_\[\]\*]+/s, $DATABASE{$name}{'SCRIPT'});
-        
-        foreach (@script_tokens)
+        while (@stuff)
         {
-            my $token = lc($_); # Token to lowercase.
+            my $out = shift @stuff;
+            my $in  = shift @stuff;
+        
+            $DATABASE{$name}{$out} = {};
+        
+            $DATABASE{$name}{$in} =~ s/<[^<>]+?>//g; # Get rid of HTML tags.
             
-            $token = $stemmer->stem($token); # Use stemmer.
+            my @script_tokens = split(/[\s,;\.:\-!\(\)\"'\?\/_\[\]\*]+/s, $DATABASE{$name}{$in});
+            
+            foreach (@script_tokens)
+            {
+                my $token = lc($_); # Token to lowercase.
+                
+                $token = $stemmer->stem($token); # Use stemmer.
 
-            $DATABASE{$name}{'FEATURES_SCRIPT'}{$token}++;
-        }
-        
-        foreach my $word (keys %{$DATABASE{$name}{'FEATURES_SCRIPT'}})
-        {
-            $words_global{$word} += $DATABASE{$name}{'FEATURES_SCRIPT'}{$word};
+                $DATABASE{$name}{$out}{$token}++;
+            }
             
-            $words_films{$word}++;
+            foreach my $word (keys %{$DATABASE{$name}{$out}})
+            {
+                $words_global{$word} += $DATABASE{$name}{$out}{$word};
+                
+                $words_films{$word}++;
+            }
         }
     }
     
@@ -177,6 +197,7 @@ sub makeScriptFeatures
         
         foreach my $name (keys %DATABASE)
         {
+            delete $DATABASE{$name}{'FEATURES_SUMMARY'}{$word};
             delete $DATABASE{$name}{'FEATURES_SCRIPT'}{$word};
         }
     }
@@ -190,8 +211,6 @@ sub makeScriptFeatures
     {
         if ($words_films{$word} <= 1 or $words_global{$word} <= 1 or $word =~ /^\d+$/) # Word prunning rules.
         {
-#             print "\tPrunning word '$word'...\n";
-        
             $sum -= $words_global{$word};
         
             delete $words_global{$word};
@@ -199,6 +218,7 @@ sub makeScriptFeatures
         
             foreach my $name (keys %DATABASE)
             {
+                delete $DATABASE{$name}{'FEATURES_SUMMARY'}{$word};
                 delete $DATABASE{$name}{'FEATURES_SCRIPT'}{$word};
             }
         }
@@ -206,14 +226,7 @@ sub makeScriptFeatures
     
     print "\tTotal words = $sum\n";
     print "\tTotal unique words = " . scalar(keys %words_global) . "\n";
-    
-#     my @words = sort {$words_global{$a} <=> $words_global{$b}} keys %words_global;
-#     
-#     for my $word (@words)
-#     {
-#         print "$word -> $words_global{$word}\n";
-#     }
-    
+
     return (\%words_global, \%words_films);
 }
 
@@ -227,7 +240,7 @@ sub writeDB
     
     foreach my $word (@list_tokens)
     {
-        print $tokens "$word\n";
+        print $tokens "$word\t${$words_global}{$word}\t${$words_films}{$word}\n";
     }
     
     close($tokens);
@@ -236,10 +249,20 @@ sub writeDB
     
     foreach my $name (keys %DATABASE)
     {
-        my $features_script = '';
+        my $features_summary = '';
+        my $features_script  = '';
 
         foreach my $word (@list_tokens)
         {
+            if (exists $DATABASE{$name}{'FEATURES_SUMMARY'}{$word})
+            {
+                $features_summary .= "$DATABASE{$name}{'FEATURES_SUMMARY'}{$word},";
+            }
+            else
+            {
+                $features_summary .= '0,';
+            }
+        
             if (exists $DATABASE{$name}{'FEATURES_SCRIPT'}{$word})
             {
                 $features_script .= "$DATABASE{$name}{'FEATURES_SCRIPT'}{$word},";
@@ -252,7 +275,7 @@ sub writeDB
         
         $features_script =~ s/,$//; # Remove trailing comma.
 
-        print $database "$name\t$DATABASE{$name}{'SCORE'}\t$features_script\n"; # Most basic features.
+        print $database "$name\t$DATABASE{$name}{'SCORE'}\t$features_summary\t$features_script\n"; # Most basic features.
     }
     
     close($database);
@@ -262,4 +285,4 @@ sub writeDB
 
 populateDB();
 my ($words_global, $words_films) = makeScriptFeatures();
-# writeDB($words_global, $words_films);
+writeDB($words_global, $words_films);
