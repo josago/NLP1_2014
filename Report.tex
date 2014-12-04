@@ -38,7 +38,7 @@ Trying to apply the previous formula as an update rule for $\eta$ does not conve
 
 $$ \eta_k^{new} \leftarrow (1 - \gamma) \eta_k^{old} + \gamma \frac{\sum_d \frac{N_{dk}}{N_d} \left( s_d - \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right)}{\sum_d \left( \frac{N_{dk}}{N_d}  \right)^2 + \epsilon}$$
 
-With $\gamma \leq \frac{1}{2}$ in order for the previous series to converge and $1 \gg \epsilon > 0$ is a smoothing constant.
+With $1 \gg \gamma > 0$ in order for the previous series to converge and $1 \gg \epsilon > 0$ is a smoothing constant.
 
 Gibbs sampler:
 
