@@ -1,3 +1,5 @@
+import cPickle
+
 import numpy             as np
 import numpy.random      as rd
 import scipy.stats       as st
@@ -45,7 +47,7 @@ def load_database(filename):
         
     f.close()
     
-    return (np.array(S), W, Wsummary, Wscript)
+    return (np.array(S), W, np.array(Wsummary), np.array(Wscript))
 
 class CSLDA:
     def __init__(self, use_scores, K, W, alpha_0 = 0.01, beta_0 = 0.01, eta_0 = None, sigma_0 = 0.5):
@@ -118,29 +120,33 @@ class CSLDA:
                 N_kw[k_old, w] -= 1
                 N_dk[d, k_old] -= 1
                 
-                p = np.zeros((self.K), dtype = float)
+                p1 = np.subtract(np.sum(sp.gammaln(N_kw + self.beta), axis = 1), sp.gammaln(N_k + self.W * self.beta))
+                p2 = sp.gammaln(N_dk[d] + self.alpha)
+
+                p    = np.zeros((self.K), dtype = float)
+                p[:] = np.sum(p1) + np.sum(p2)
+                
+                selectW    = np.zeros((self.W), dtype = int)
+                selectW[w] = 1
 
                 for k in range(self.K):
-                    select1    = np.zeros((self.K), dtype = int)
-                    select1[k] = 1
-                    
-                    select2       = np.zeros((self.K, self.W), dtype = int)
-                    select2[k, w] = 1
-                    
+                    selectK    = np.zeros((self.K), dtype = int)
+                    selectK[k] = 1
+
                     # Log-space probabilities:
                     
-                    p[k] += np.sum(np.subtract(np.sum(sp.gammaln(N_kw + select2 + self.beta), axis = 1), sp.gammaln(N_k + select1 + self.W * self.beta)))
+                    p[k] += np.subtract(np.sum(sp.gammaln(N_kw[k] + selectW + self.beta)), sp.gammaln(N_k[k] + 1 + self.W * self.beta)) - p1[k]
                     
                     #p[k] *= np.prod(np.divide(np.prod(sp.gamma(N_kw + select2 + self.beta), axis = 1), sp.gamma(N_k + select1 + self.W * self.beta))) # Linear-space probabilities.
                     
                     if self.use_scores:
-                        posterior_mean = float(np.divide(N_dk[d] + select1, np.repeat(np.reshape(N_d[d], (-1, 1)), self.K, axis = 1)).dot(np.reshape(self.eta, (-1, 1))))
+                        posterior_mean = float(np.divide(N_dk[d] + selectK, np.repeat(np.reshape(N_d[d], (-1, 1)), self.K, axis = 1)).dot(np.reshape(self.eta, (-1, 1))))
                     
                         p[k] += np.log(st.norm.pdf(S[d], posterior_mean, self.sigma) + 1E-100) # This avoids infinities.
                         
                         #p[k] *= st.norm.pdf(S[d], posterior_mean, self.sigma)        # Linear-space probabilities.
                         
-                    p[k] += np.sum(sp.gammaln(N_dk[d, :] + self.alpha + select1))
+                    p[k] += sp.gammaln(N_dk[d, k] + self.alpha + 1) - p2[k]
 
                     #p[k] *= np.prod(sp.gamma(N_dk[d, :] + self.alpha + select1)) # Linear-space probabilities.
                     
@@ -175,22 +181,25 @@ class CSLDA:
 
             self.eta = (1 - gamma) * self.eta + gamma * np.divide(num, den)
    
-    def train(self, S, W, num_burn_in, num_skip, num_samples):
-        self.D = S.shape[0]
+    def train(self, Strain, Wtrain, Stest, Wtest, num_burn_in, num_skip, num_samples):
+        self.D = Strain.shape[0]
         
         print "Training CSLDA model with %d topics, %d documents and %d unique words..." % (self.K, self.D, self.W)
+        
+        perplex = []
+        inv_acc = []
         
         # Allocate data structures:
         
         self.N_skw = np.zeros((num_samples, self.K, self.W), dtype = float)
         self.N_sk  = np.zeros((num_samples, self.K),         dtype = float)
         
-        (N_kw, N_dk, N_k, N_d, Z) = self.__init_all(W)
+        (N_kw, N_dk, N_k, N_d, Z) = self.__init_all(Wtrain)
 
         if self.eta is None:
             self.eta = np.zeros((self.K), dtype = float)
             
-            self.__estimate_eta(N_dk, N_d, S)
+            self.__estimate_eta(N_dk, N_d, Strain)
         
         sample = 0
         
@@ -199,8 +208,20 @@ class CSLDA:
             
             # Calculate sample:
             
-            self.__gibbs_sampler(N_kw, N_dk, N_k, N_d, Z, S, W)
-            self.__estimate_eta(N_dk, N_d, S)
+            self.__gibbs_sampler(N_kw, N_dk, N_k, N_d, Z, Strain, Wtrain)
+            self.__estimate_eta(N_dk, N_d, Strain)
+            
+            (a, b) = self.test(Stest, Wtest, 0, 1, 1, sample)
+            self.D = Strain.shape[0]
+            
+            perplex.append(a)
+            inv_acc.append(b)
+            
+            plt.subfigure(1, 2, 1)
+            plt.plot(perplex)
+            plt.subfigure(1, 2, 2)
+            plt.plot(inv_acc)
+            plt.show()
             
             if iteration >= num_burn_in and (iteration - num_burn_in) % num_skip == 0:
                 # Save sample:
@@ -210,7 +231,15 @@ class CSLDA:
                 
                 sample += 1
                 
-    def test(self, S, W, num_burn_in, num_skip, num_samples):
+        # Plot the results:
+        
+        plt.subfigure(1, 2, 1)
+        plt.plot(perplex)
+        plt.subfigure(1, 2, 2)
+        plt.plot(inv_acc)
+        plt.show()
+
+    def test(self, S, W, num_burn_in, num_skip, num_samples, num_samples_train):
         self.D = S.shape[0]
         
         print "Testing CSLDA model with %d topics, %d documents and %d unique words..." % (self.K, self.D, self.W)
@@ -224,7 +253,7 @@ class CSLDA:
 
         N2 = 0
         
-        for sample in range(self.N_skw.shape[0]):
+        for sample in range(num_samples_train):
             (N_kw, N_dk, N_k, N_d, Z) = self.__init_all(W1) # Random initialization of Z.
             
             N_kw += self.N_skw[sample]
@@ -245,7 +274,7 @@ class CSLDA:
                     
                     p = thetas.dot(phis)
                         
-                    for d in range(len(W2)):
+                    for d in range(W2.shape[0]):
                         for i in range(W2[d].shape[0]):
                             w = W2[d][i]
                             
@@ -253,29 +282,38 @@ class CSLDA:
                             inv_acc += p[d, w]
                             
                             N2 += 1
-              
-        print "Model perplexity       = %.2f" % np.power(2, - perplex / N2)
-        print "Model inverse accuracy = %.2f" % (N2 / inv_acc)
+        
+        perplex = np.power(2, - perplex / N2)
+        inv_acc = N2 / inv_acc
+        
+        return (perplex, inv_acc)
 
-# For the time being we will just use movie summaries:
+# Load database:
 
 (S, W, Wsummary, Wscript) = load_database("database.csv")
 
-Strain = S[0 : 5]
-Stest  = S[5 : 10]
+# Sort movies by scores and select a few from the worst ones, the best ones, and the ones in the middle:
 
-Wtrain = Wsummary[0 : 5]
-Wtest  = Wsummary[5 : 10]
+idx_sort   = np.argsort(S)
+idx_movies = rd.permutation(np.append(np.append(idx_sort[0 : 10], idx_sort[-1 : -11]), idx_sort[S.shape[0] / 2 - 5 : S.shape[0] / 2 + 5]))
+
+# For the time being we will just use movie summaries:
+
+Strain = S[idx_movies[ : 20]]
+Stest  = S[idx_movies[20 : ]]
+
+Wtrain = Wsummary[idx_movies[ : 20]]
+Wtest  = Wsummary[idx_movies[20 : ]]
 
 # Train and test the CSLDA model:
 
 use_scores = True
-K          = 20
+K          = 10
 
-num_burn_in = 5
-num_skip    = 3
-num_samples = 5
+num_burn_in = 0
+num_skip    = 1
+num_samples = 100
 
 cslda = CSLDA(use_scores, K, W)
-cslda.train(Strain, Wtrain, num_burn_in, num_skip, num_samples)
-cslda.test(Stest, Wtest, num_burn_in, num_skip, num_samples)
+cslda.train(Strain, Wtrain, Stest, Wtest, num_burn_in, num_skip, num_samples)
+#cslda.test(Stest, Wtest, num_burn_in, num_skip, num_samples)

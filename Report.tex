@@ -46,9 +46,37 @@ $$ p(z_{di} = k | Z^{\backslash i}, S, W, \alpha, \beta, \eta, \sigma) \propto p
 $$ \propto \left[ \prod_{k'} \frac{\prod_w \Gamma(N_{{k'}w}^{\backslash i} + 1(k' = k \wedge w = w_{di}) + \beta)}{\Gamma(N_{k'}^{\backslash i} + 1(k' = k) + W \beta)} \right] \times $$
 $$ \mathcal{N}\left(s_d\, \left|\, \eta^T \cdot \frac{N_{d{k'}}^{\backslash i} + 1(k' = k)}{N_d}, \sigma\right. \right) \prod_{k'} \Gamma(N_{d{k'}}^{\backslash i} + 1(k' = k) + \alpha) $$
 
-Results with 5 movies in the training set and 5 movies in the testing set:
+\subsection*{Dataset}
+
+\begin{itemize}
+	\item Number of movies $\approx$ 700
+	\item Distribution of movie scores:
+	
+	\begin{figure}[ht!]
+		\centering
+		\includegraphics[width=\textwidth]{scores_histogram.png}
+		
+		\caption{Moo}
+	\end{figure}
+
+	\item Average number of tokens within a movie summary $\approx$ 75
+	\item Average number of tokens within a movie script $\approx$ 18000
+\end{itemize}
+
+
+Results with 5 movies in the training set and 5 movies in the testing set (5 burn-in, 3 skip, 5 samples):
 
 Perplexity values:
+
+% For K = 5:
+% Model perplexity       = 9839.41
+% Model inverse accuracy = 952.49
+% Model perplexity       = 9727.80
+% Model inverse accuracy = 954.52
+
+% For K = 10:
+% Model perplexity       = 9068.27
+% Model inverse accuracy = 920.19
 
 \begin{center}
 	\begin{tabular}{cc|ccc}
