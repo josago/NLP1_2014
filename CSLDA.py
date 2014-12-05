@@ -261,20 +261,20 @@ class CSLDA:
 
 (S, W, Wsummary, Wscript) = load_database("database.csv")
 
-Strain = S[0 : 2]
-Stest  = S[2 : 4]
+Strain = S[0 : 5]
+Stest  = S[5 : 10]
 
-Wtrain = Wsummary[0 : 2]
-Wtest  = Wsummary[2 : 4]
+Wtrain = Wsummary[0 : 5]
+Wtest  = Wsummary[5 : 10]
 
 # Train and test the CSLDA model:
 
-use_scores = False
-K          = 25
+use_scores = True
+K          = 20
 
-num_burn_in = 1
-num_skip    = 1
-num_samples = 1
+num_burn_in = 5
+num_skip    = 3
+num_samples = 5
 
 cslda = CSLDA(use_scores, K, W)
 cslda.train(Strain, Wtrain, num_burn_in, num_skip, num_samples)

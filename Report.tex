@@ -1,8 +1,8 @@
 \documentclass[a4paper,10pt]{report}
 
 \usepackage[utf8]{inputenc}
-\usepackage{amsmath, amssymb, hyperref}
-\usepackage{dot2texi}
+\usepackage{amsmath, amssymb, hyperref, multirow, dot2texi}
+
 \usepackage{tikz}
 \usetikzlibrary{shapes, arrows}
 
@@ -45,5 +45,27 @@ Gibbs sampler:
 $$ p(z_{di} = k | Z^{\backslash i}, S, W, \alpha, \beta, \eta, \sigma) \propto p(z_{di} = k, Z_{-i}, S, W, \alpha, \beta, \eta, \sigma) $$
 $$ \propto \left[ \prod_{k'} \frac{\prod_w \Gamma(N_{{k'}w}^{\backslash i} + 1(k' = k \wedge w = w_{di}) + \beta)}{\Gamma(N_{k'}^{\backslash i} + 1(k' = k) + W \beta)} \right] \times $$
 $$ \mathcal{N}\left(s_d\, \left|\, \eta^T \cdot \frac{N_{d{k'}}^{\backslash i} + 1(k' = k)}{N_d}, \sigma\right. \right) \prod_{k'} \Gamma(N_{d{k'}}^{\backslash i} + 1(k' = k) + \alpha) $$
+
+Results with 5 movies in the training set and 5 movies in the testing set:
+
+Perplexity values:
+
+\begin{center}
+	\begin{tabular}{cc|ccc}
+	K &  & 5 & 10 & 20 \\ \hline
+	\multirow{2}{*}{Using scores?} & Yes & 10059 & 7503 & 10938   \\
+	& No  & 9297 & 10180 & 9663   \\
+	\end{tabular}
+\end{center}
+
+Inverse accuracy values:
+
+\begin{center}
+	\begin{tabular}{cc|ccc}
+	K &  & 5 & 10 & 20 \\ \hline
+	\multirow{2}{*}{Using scores?} & Yes & 964 & 703 & 1133   \\
+	& No  & 915 & 1143 & 960   \\
+	\end{tabular}
+\end{center}
 
 \end{document}          
