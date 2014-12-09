@@ -69,7 +69,7 @@ class CSLDA:
         W1 = []
         W2 = []
         
-        for d in range(len(W)):
+        for d in range(W.shape[0]):
             w1 = []
             w2 = [] 
             
@@ -82,7 +82,7 @@ class CSLDA:
             W1.append(np.array(w1))
             W2.append(np.array(w2))
         
-        return (W1, W2)
+        return (np.array(W1), np.array(W2))
     
     def __init_all(self, W):
         N_kw = np.zeros((self.K, self.W), dtype = int)
@@ -111,7 +111,7 @@ class CSLDA:
         return (N_kw, N_dk, N_k, N_d, Z)
     
     def __gibbs_sampler(self, N_kw, N_dk, N_k, N_d, Z, S, W):
-        for d in range(len(W)):
+        for d in range(W.shape[0]):
             for i in range(W[d].shape[0]):
                 w     = W[d][i]
                 k_old = Z[d][i]
@@ -204,24 +204,12 @@ class CSLDA:
         sample = 0
         
         for iteration in range(num_burn_in + num_skip * num_samples):
-            print "\tIteration #%i..." % (iteration + 1)
+            #print "\tIteration #%i..." % (iteration + 1)
             
             # Calculate sample:
             
             self.__gibbs_sampler(N_kw, N_dk, N_k, N_d, Z, Strain, Wtrain)
             self.__estimate_eta(N_dk, N_d, Strain)
-            
-            (a, b) = self.test(Stest, Wtest, 0, 1, 1, sample)
-            self.D = Strain.shape[0]
-            
-            perplex.append(a)
-            inv_acc.append(b)
-            
-            plt.subfigure(1, 2, 1)
-            plt.plot(perplex)
-            plt.subfigure(1, 2, 2)
-            plt.plot(inv_acc)
-            plt.show()
             
             if iteration >= num_burn_in and (iteration - num_burn_in) % num_skip == 0:
                 # Save sample:
@@ -230,19 +218,21 @@ class CSLDA:
                 self.N_sk[sample]  = np.copy(N_k)
                 
                 sample += 1
+             
+                (a, b) = self.test(Stest, Wtest, num_burn_in, 1, 1, sample)
                 
-        # Plot the results:
+                perplex.append(a)
+                inv_acc.append(b)
+                
+                print "[%d, %f, %f]," % (iteration + 1, a, b)
         
-        plt.subfigure(1, 2, 1)
-        plt.plot(perplex)
-        plt.subfigure(1, 2, 2)
-        plt.plot(inv_acc)
-        plt.show()
+        return (perplex, inv_acc)
 
     def test(self, S, W, num_burn_in, num_skip, num_samples, num_samples_train):
+        Dtrain = self.D
         self.D = S.shape[0]
         
-        print "Testing CSLDA model with %d topics, %d documents and %d unique words..." % (self.K, self.D, self.W)
+        #print "Testing CSLDA model with %d topics, %d documents and %d unique words..." % (self.K, self.D, self.W)
         
         perplex = 0.0
         inv_acc = 0.0
@@ -260,7 +250,7 @@ class CSLDA:
             N_k  += self.N_sk[sample]
         
             for iteration in range(num_burn_in + num_skip * num_samples):
-                print "\tIteration #%i..." % (sample * (num_burn_in + num_skip * num_samples) + iteration + 1)
+                #print "\tIteration #%i..." % (sample * (num_burn_in + num_skip * num_samples) + iteration + 1)
                 
                 # Calculate sample:
                 
@@ -286,6 +276,8 @@ class CSLDA:
         perplex = np.power(2, - perplex / N2)
         inv_acc = N2 / inv_acc
         
+        self.D = Dtrain
+        
         return (perplex, inv_acc)
 
 # Load database:
@@ -295,9 +287,9 @@ class CSLDA:
 # Sort movies by scores and select a few from the worst ones, the best ones, and the ones in the middle:
 
 idx_sort   = np.argsort(S)
-idx_movies = rd.permutation(np.append(np.append(idx_sort[0 : 10], idx_sort[-1 : -11]), idx_sort[S.shape[0] / 2 - 5 : S.shape[0] / 2 + 5]))
+idx_movies = rd.permutation(np.append(np.append(idx_sort[0 : 10], idx_sort[-11 : -1]), idx_sort[S.shape[0] / 2 - 5 : S.shape[0] / 2 + 5]))
 
-# For the time being we will just use movie summaries:
+# For the time being we will just use 30 movie summaries (20 training / 10 testing):
 
 Strain = S[idx_movies[ : 20]]
 Stest  = S[idx_movies[20 : ]]
@@ -305,15 +297,27 @@ Stest  = S[idx_movies[20 : ]]
 Wtrain = Wsummary[idx_movies[ : 20]]
 Wtest  = Wsummary[idx_movies[20 : ]]
 
-# Train and test the CSLDA model:
+# Train and test (on-line) the CSLDA model:
 
-use_scores = True
+use_scores = False
 K          = 10
 
-num_burn_in = 0
-num_skip    = 1
-num_samples = 100
+num_burn_in = 25
+num_skip    = 2
+num_samples = 50
 
 cslda = CSLDA(use_scores, K, W)
-cslda.train(Strain, Wtrain, Stest, Wtest, num_burn_in, num_skip, num_samples)
-#cslda.test(Stest, Wtest, num_burn_in, num_skip, num_samples)
+(perplex, inv_acc) = cslda.train(Strain, Wtrain, Stest, Wtest, num_burn_in, num_skip, num_samples)
+
+# Plot the results:
+
+print perplex
+print inv_acc
+
+plt.subplot(2, 1, 1)
+plt.title("Perplexity")
+plt.plot(perplex)
+plt.subplot(2, 1, 2)
+plt.title("Inverse accuracy")
+plt.plot(inv_acc)
+plt.show()

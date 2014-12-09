@@ -2,3 +2,6 @@
 *.log
 *.out
 *.backup
+*.nav
+*.snm
+*.toc
