@@ -36,16 +36,32 @@ $$ \Rightarrow \eta_k = \frac{\sum_d \frac{N_{dk}}{N_d} \left( s_d - \sum_{k' \n
 
 Trying to apply the previous formula as an update rule for $\eta$ does not converge. Instead, the following update can be used:
 
-$$ \eta_k^{new} \leftarrow (1 - \gamma) \eta_k^{old} + \gamma \frac{\sum_d \frac{N_{dk}}{N_d} \left( s_d - \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right)}{\sum_d \left( \frac{N_{dk}}{N_d}  \right)^2 + \epsilon}$$
+\begin{multline*}
+\eta_k^{new} \leftarrow (1 - \gamma) \eta_k^{old} + \gamma \frac{\sum_d \frac{N_{dk}}{N_d} \left( s_d - \sum_{k' \ne k} \eta_{k'}^{old} \frac{N_{dk'}}{N_d} \right)}{\sum_d \left( \frac{N_{dk}}{N_d}  \right)^2 + \varepsilon}
+\end{multline*}
 
 With $1 \gg \gamma > 0$ in order for the previous series to converge and $1 \gg \epsilon > 0$ is a smoothing constant.
 
 Gibbs sampler:
 
-$$ p(z_{di} = k | Z^{\backslash i}, S, W, \alpha, \beta, \eta, \sigma) \propto p(z_{di} = k, Z_{-i}, S, W, \alpha, \beta, \eta, \sigma) $$
-$$ \propto \left[ \prod_{k'} \frac{\prod_w \Gamma(N_{{k'}w}^{\backslash i} + 1(k' = k \wedge w = w_{di}) + \beta)}{\Gamma(N_{k'}^{\backslash i} + 1(k' = k) + W \beta)} \right] \times $$
-$$ \mathcal{N}\left(s_d\, \left|\, \eta^T \cdot \frac{N_{d{k'}}^{\backslash i} + 1(k' = k)}{N_d}, \sigma\right. \right) \prod_{k'} \Gamma(N_{d{k'}}^{\backslash i} + 1(k' = k) + \alpha) $$
+\begin{multline*}
+p(z_{di} = k \mid Z^{\backslash i}, S, W, \alpha, \beta, \eta, \sigma) \propto p(z_{di} = k, Z_{-i}, S, W, \alpha, \beta, \eta, \sigma) \\
+\propto \left[ \prod_{k'} \frac{\prod_w \Gamma(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta)}{\Gamma(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta)} \right] \times \\
+\underbrace{\mathcal{N}\left(s_d\, \left|\, \eta^T \cdot \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}, \sigma\right. \right)}_\text{Movie score term} \prod_{k'} \Gamma(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha)
+\end{multline*}
 
+\begin{multline*}
+\log \left[ \prod_{k'} \frac{\prod_w \Gamma(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta)}{\Gamma(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta)} \right] = \\
+\sum_{k'} \left[ \sum_w \log \Gamma(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta) \right] - \log \Gamma(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta) = \\
+\sum_{k'} \sum_w \log \Gamma(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta) - \sum_{k'} \log \Gamma(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta) = \\
+\sum_w \sum_{k'} \sum_{j = 0}^\infty \log \left(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}\right) + \beta + j) + \log \left(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta + j\right)
+\end{multline*}
+
+\begin{multline*}
+ \log \left( \prod_{k'} \Gamma(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha) \right) =\\
+- \sum_{k'} \sum_{j = 0}^\infty \log (N_{dk'}^{\backslash i} + \mathbb{I}(k' = k) + \alpha + j)
+\end{multline*}
+ 
 \subsection*{Dataset}
 
 \begin{itemize}
