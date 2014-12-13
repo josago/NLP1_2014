@@ -7,8 +7,13 @@
 \usetikzlibrary{shapes, arrows}
 
 % Title Page
-\title{}
-\author{}
+\title{Usingscores to improve language modellingmovie plot summaries}
+\author{Jorge S\'{a}ez G\'{o}mez\\
+Roelof van der Heijden\\
+Francesco Stablum
+}
+%\institute{Universiteit van Amsterdam}
+\date{\today}
 
 \parskip = 8pt
 \setlength{\parindent}{0pt}
@@ -19,16 +24,53 @@
 \newcommand{\eps}{\epsilon}
 
 \begin{document}
+\maketitle
+\begin{abstract}
+  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec velit est, fringilla quis mollis in, dapibus nec ipsum. Donec volutpat sapien nec nibh suscipit vehicula. In hac habitasse platea dictumst. Phasellus mattis, enim sit amet tincidunt auctor, ligula ipsum fermentum libero, ut gravida mauris risus ac magna. Vestibulum a tempor mi. Donec viverra feugiat magna, eget lobortis neque volutpat eu. Nullam vehicula vitae nunc in aliquet. Ut vulputate eget eros quis mollis. Curabitur eget egestas est. Vestibulum tincidunt nisl nec justo hendrerit, in ullamcorper mauris porta. Nullam erat tortor, aliquam non purus nec, facilisis sodales risus.
+\end{abstract}
 
-\section{Introduction} % Problem Formulation
-
+\section{Introduction} 
+%• Description of the problem area and the problem itself
+%• What is the research question / goal?
+%• Why is this an important / meaningful / interesting problem to consider?
+%• The very basic idea of the approach and why this is a reasonable approach for this problem?
 In recent years, several successes have been booked for applying semantic analysis on user comments of movies.
-In this report we use those same techniques, but apply them to plot summaries of movies to try and estimate the score these movies are rated with on the popular online movie database IMDb.
-These user-written texts roughly describe what happens in a particular movie and may therefore be an indication of the score, which is also calculated from user submitted data.
+In this report we use those same techniques, but apply them to plot summaries of movies.
+Using these corpus of text we try to determine whether the contents of these summaries and the score these movies are rated with on the popular online movie database IMDb \cite{imdb} are correlated.
+We do this by comparing the performance on two latent Dirichlet allocation models - one with and another without using the scores.
 
 This project is part of the Natural Language Processing course of the UvA from Fall 2014.
 
-\section{Models}
+\section{Problem}
+%• Explain the problem; what kind of assumptions / observations you have about the problem
+In this section we describe the characteristics of the problem and take a closer look at the data set that we use.
+
+%\subsection{Assumptions and observations}
+%The core assumption of this project is that 
+
+\subsection{Data set}
+The texts that we use in ths model are summaries of movies.
+These summaries have been written by users of the popular online movie database IMDb, with the intent to outline the events that occur in the movie to the reader.
+
+This is fundamentally different from movie reviews, as the author is not supposed to inject his or her own opinion of the movie in the summary.
+However, this can obviously never be fully accomplished, since the author must have a opinion on the movie in question.
+
+An important assumption we make is that the authors wrote the summaries voluntarily, without any compensation or external influence which might affect the writing of the author.
+Moreover, we assume that the summary also contains the authors personal opinion on the movie, although this does not have to be explicitly mentioned.
+Only if this assumption holds, can we try to find a correlation between the summary and the score of the movie.
+
+An example plot summary from the movie Big Fish (2003) from IMDb can be found below. 
+It was written by a user who wanted to remain anonymous.
+\begin{quotation}
+  The story revolves around a dying father and his son, who is trying to learn more about his dad by piecing together the stories he has gathered over the years. The son winds up re-creating his father's elusive life in a series of legends and myths inspired by the few facts he knows. Through these tales, the son begins to understand his father's great feats and his great failings.
+\end{quotation}
+
+\section{Approach}
+%• Explain the model; if any important assumptions are made at this stage, explain why they are reasonable or necessary
+%• Explain learning / inference algorithms
+%• Explaining (perhaps briefly) any necessary preprocessing / postprocesing / data acquisition stages (maybe earlier, depending on the project; may also move to the experimental section)
+
+\subsection{Model}
 In this section we describe the extended topic based model we used.
 It is taken from \cite{dfsdf}.
 
@@ -73,7 +115,7 @@ Its graphical representation can be seen in Figure~\ref{fig:SLDA}.
   \caption{A graphical representation of our modified LDA model.}
 \end{figure}
 
-\section{Approach}
+\subsubsection{Formulas} % todo: should name this section different
 (I took this straight from the photo Francesco sent.)
 \begin{equation}
   P(\theta, s, z, p,  W\mid \alpha, \beta) = \prod_{d} \Dir(\varphi_d \mid \beta)
@@ -106,17 +148,17 @@ $$ P(S, Z, W \mid \alpha, \beta, \eta, \sigma) = \left[ \prod_k \frac{\Gamma(W \
 $$ \times \left[ \prod_d \mathcal{N}\left(s_d\, \left|\, \eta^T \cdot \frac{N_{dk}}{N_d}, \sigma\right. \right) \frac{\Gamma(K \alpha)}{\Gamma(\alpha)^K \cdot \Gamma(N_d + K \alpha)} \prod_k \Gamma(N_{dk} + \alpha) \right] $$
 Where we used $ \frac{N_{dk}}{N_d} \equiv \bar{Z_d} $
 
-\subsection{Transformation to log-space}
+\subsubsection{Transformation to log-space}
 Now we transform into log-space:
 $$ \log P(S, Z, W \mid \alpha, \beta, \eta, \sigma) = $$
 $$ \left[ \sum_k \log \Gamma(W \beta) - W \log \Gamma(\beta) - \log \Gamma(N_k + W \beta) + \sum_w \log \Gamma(N_{kw} + \beta) \right]+ $$
 $$ \left[ \sum_d \underbrace{- \log \sigma - \frac{1}{2} \log(2 \pi) - \frac{\left(s_d - \eta^T \cdot \frac{N_{dk}}{N_d}\right)^2}{2 \sigma^2}}_{\text{Normal distribution}} + \right. $$
 $$ \left. \log \Gamma(K \alpha) - K \log \Gamma(\alpha) - \log \Gamma(N_d + K \alpha) + \sum_k \log \Gamma(N_{dk} + \alpha) \right] $$
 
-\subsection{Estimating Gamma-function}
+\subsubsection{Rewriting log gamma function}
 The logarithm of the gamma function can be rewritten as follows \cite{Boros and MOll 2004 p.204}:
 \begin{equation}
-  \log \Gamma(z) = -\gamma z - \log z + \sum_{j=1}^\infty \left[\frac{z}{j}-\log(1+\frac{z}{j})\right]
+  \log \Gamma(z) = -\gamma z - \log z + \sum_{j=1}^\infty \left[\frac{z}{j}-\log\left(1+\frac{z}{j}\right)\right]
 \end{equation}
 where $\gamma$ is the Euler-Mascheroni constant.We apply this to $\sum_k \sum_w \log \Gamma(N_{kw} + \beta)$, which then becomes:
 \begin{align*}
@@ -125,7 +167,7 @@ where $\gamma$ is the Euler-Mascheroni constant.We apply this to $\sum_k \sum_w 
 \intertext{Note that the term \(-\gamma (N + KW\beta)\) serves as a normalisation constant for this dataset.
 Since we do not need the exact probabilities but only the proportional probabilities during the algorithms execution, we can discard those terms.}
 &\Rightarrow - \sum_{k,w} \log (N_{kw}+\beta) - \sum_{j=1}^\infty  \frac{N_{kw} + \beta}{j} - \log\left(\frac{N_{kw} + \beta+j}{j}\right)\\
-&=-\sum_{k,w} \log (N_{kw}+\beta) - \sum_{j=1}^\infty  \frac{N_{kw} + \beta}{j} - \log\left(N_{kw} + \beta+j) + \log(j)\right)\\
+&=-\sum_{k,w} \log (N_{kw}+\beta) - \sum_{j=1}^\infty  \frac{N_{kw} + \beta}{j} - \log(N_{kw} + \beta+j) + \log(j)\\
 &=-\sum_{k,w} \log (N_{kw}+\beta) - \sum_{j=1}^\infty \left( \frac{N_{kw} + \beta}{j} +\log(j)\right) + \sum_{j=1}^\infty \log(N_{kw} + \beta + j)\\
 &=\sum_{j=1}^\infty \left( \frac{N + KW\beta}{j} +KW\log(j)\right) - \sum_{k,w} \log (N_{kw}+\beta) + \sum_{j=1}^\infty \log(N_{kw} + \beta + j)\\
 &=\sum_{j=1}^\infty \left( \frac{N + KW\beta}{j} +KW\log(j)\right) - \sum_{k,w} \sum_{j=0}^\infty \log(N_{kw} + \beta + j)
@@ -148,24 +190,10 @@ Putting these together gives us the following proportionality:
   \sum_{j=0}^\infty &\sum_k \log(N_k + W\beta + j) - \sum_{j=0}^\infty \sum_{k,w} \log (N_{kw} + \beta + j)
 \end{alignat*}
 
-
-\section{Dataset}
-
-\section{Experiments}
-
-\section{Results}
-
-\section{Discussion}
-
-
-
-
-
-
-
+\subsubsection{Estimating response parameters}
 Maximum a posteriori (MAP) estimate for the $\eta$ hyperparameter:
 
-$$ \nabla_{\eta_k} \log p(S, Z, W | \alpha, \beta, \eta, \sigma) = \sum_d \frac{ \frac{N_{dk}}{N_d} \left( s_d - \eta^T \frac{N_{d\cdot}}{N_d}\right) }{\sigma^2} = $$
+$$ \nabla_{\eta_k} \log p(S, Z, W \mid \alpha, \beta, \eta, \sigma) = \sum_d \frac{ \frac{N_{dk}}{N_d} \left( s_d - \eta^T \frac{N_{d\cdot}}{N_d}\right) }{\sigma^2} = $$
 $$ = \sum_d \frac{s_d \frac{N_{dk}}{N_d} }{\sigma^2} - \sum_d \frac{ \frac{N_{dk}}{N_d} \left( \eta^T \frac{N_{d\cdot}}{N_d} \right) }{\sigma^2} = 0 $$
 $$ \Rightarrow \sum_d s_d \frac{N_{dk}}{N_d} = \sum_d \frac{N_{dk}}{N_d} \left( \sum_{k'} \eta_{k'} \frac{N_{dk'}}{N_d} \right) = \sum_d \frac{N_{dk}}{N_d} \left( \eta_k \frac{N_{dk}}{N_d} + \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right) $$
 $$ \Rightarrow \sum_d s_d \frac{N_{dk}}{N_d} = \eta_k \sum_d \left( \frac{N_{dk}}{N_d}  \right)^2 + \sum_d \left( \frac{N_{dk}}{N_d} \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right) $$
@@ -179,11 +207,39 @@ $$ \eta_k^{new} \leftarrow (1 - \gamma) \eta_k^{old} + \gamma \frac{\sum_d \frac
 
 With $1 \gg \gamma > 0$ in order for the previous series to converge and $1 \gg \epsilon > 0$ is a smoothing constant.
 
+\subsubsection{Gibbs Sampler}
 Gibbs sampler:
 
-$$ p(z_{di} = k | Z^{\backslash i}, S, W, \alpha, \beta, \eta, \sigma) \propto p(z_{di} = k, Z_{-i}, S, W, \alpha, \beta, \eta, \sigma) $$
-$$ \propto \left[ \prod_{k'} \frac{\prod_w \Gamma(N_{{k'}w}^{\backslash i} + 1(k' = k \wedge w = w_{di}) + \beta)}{\Gamma(N_{k'}^{\backslash i} + 1(k' = k) + W \beta)} \right] \times $$
-$$ \mathcal{N}\left(s_d\, \left|\, \eta^T \cdot \frac{N_{d{k'}}^{\backslash i} + 1(k' = k)}{N_d}, \sigma\right. \right) \prod_{k'} \Gamma(N_{d{k'}}^{\backslash i} + 1(k' = k) + \alpha) $$
+$$ P(z_{di} = k \mid Z^{\backslash i}, S, W, \alpha, \beta, \eta, \sigma) \propto P(z_{di} = k, Z_{-i}, S, W, \alpha, \beta, \eta, \sigma) $$
+$$ \propto \left[ \prod_{k'} \frac{\prod_w \Gamma(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta)}{\Gamma(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta)} \right] \times $$
+$$ \mathcal{N}\left(s_d\, \left|\, \eta^\top\frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}, \sigma\right. \right) \prod_{k'} \Gamma(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha) $$
+
+Or in log-space:
+\begin{align*}
+&\propto \sum_{k',w} \log \Gamma(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta) - \log \Gamma(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta)\\
+&\hspace{10pt}-\frac{1}{2 \sigma^2}\left(s_d - \eta^\top \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}\right)^2 + \sum_{k'} \log \Gamma(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha)
+\end{align*}
+  
+
+
+We rewrite the log gamma terms again to get:
+\[\propto \sum_{j=0}^\infty \sum_{k'}\log(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta + j) 
+-\log(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha +j)-\]
+\[\sum_{j=0}^\infty \sum_{k',w} \log(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta + j) -\frac{1}{2 \sigma^2}\left(s_d - \eta^\top \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}\right)^2\]
+
+
+\section{Experiments}
+%• Any details about experiments (dataset sizes, parameter selection, etc)
+%• Results
+%• Analysis (discussion of results / visualization / findings / etc)
+
+\section{Discussion}
+%• Refer to the research questions you defined in your introduction.
+%• Any related work you are aware of?
+%• Challenges you observed?
+%• “Future work” (you do not need to do this work really J, but what would you change in the model / what experiments you would run / etc, if you would have a chance to do this? What other people should look into?
+%• Any thoughts / observation / wider implications
+
 
 
 \end{document}          
