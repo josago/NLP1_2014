@@ -35,7 +35,7 @@ def load_database(filename):
                 for i in range(int(script[w])):
                     w_script.append(w)
             except ValueError:
-                pass
+                pass # Invalid word ID.
         
         try:
             if len(w_summary) > 0 and len(w_script) > 0: # Checks that the movie has both summary and script.
@@ -66,6 +66,8 @@ class CSLDA:
         self.N_sk  = None
         
     def __split_W(self, W, p1 = 0.5):
+        # Randomly splits every document into two parts.
+        
         W1 = []
         W2 = []
         
@@ -85,6 +87,8 @@ class CSLDA:
         return (np.array(W1), np.array(W2))
     
     def __init_all(self, W):
+        # Randomly assigns topics to words.
+        
         N_kw = np.zeros((self.K, self.W), dtype = int)
         N_dk = np.zeros((self.D, self.K), dtype = int)
         N_k  = np.zeros((self.K),         dtype = int)
@@ -113,12 +117,18 @@ class CSLDA:
     def __gibbs_sampler(self, N_kw, N_dk, N_k, N_d, Z, S, W):
         for d in range(W.shape[0]):
             for i in range(W[d].shape[0]):
-                w     = W[d][i]
-                k_old = Z[d][i]
+                w     = W[d][i] # Word ID.
+                k_old = Z[d][i] # Old topic assignment.
+
+                # This calculates N without the element (d, i):
 
                 N_k[k_old]     -= 1
                 N_kw[k_old, w] -= 1
                 N_dk[d, k_old] -= 1
+                
+                # Some work can be done outside the main loop (in K) in order to pre-calculate things that will be used afterwards (p1 and p2):
+                
+                # NOTE: This Gibbs sampler is implemented in log-space probabilities, in order to avoid numerical problems.
                 
                 p1 = np.subtract(np.sum(sp.gammaln(N_kw + self.beta), axis = 1), sp.gammaln(N_k + self.W * self.beta))
                 p2 = sp.gammaln(N_dk[d] + self.alpha)
@@ -132,34 +142,32 @@ class CSLDA:
                 for k in range(self.K):
                     selectK    = np.zeros((self.K), dtype = int)
                     selectK[k] = 1
-
-                    # Log-space probabilities:
                     
                     p[k] += np.subtract(np.sum(sp.gammaln(N_kw[k] + selectW + self.beta)), sp.gammaln(N_k[k] + 1 + self.W * self.beta)) - p1[k]
-                    
-                    #p[k] *= np.prod(np.divide(np.prod(sp.gamma(N_kw + select2 + self.beta), axis = 1), sp.gamma(N_k + select1 + self.W * self.beta))) # Linear-space probabilities.
                     
                     if self.use_scores:
                         posterior_mean = float(np.divide(N_dk[d] + selectK, np.repeat(np.reshape(N_d[d], (-1, 1)), self.K, axis = 1)).dot(np.reshape(self.eta, (-1, 1))))
                     
-                        p[k] += np.log(st.norm.pdf(S[d], posterior_mean, self.sigma) + 1E-100) # This avoids infinities.
-                        
-                        #p[k] *= st.norm.pdf(S[d], posterior_mean, self.sigma)        # Linear-space probabilities.
+                        p[k] += np.log(st.norm.pdf(S[d], posterior_mean, self.sigma) + 1E-100) # The + 1E-100 avoids infinities.
                         
                     p[k] += sp.gammaln(N_dk[d, k] + self.alpha + 1) - p2[k]
-
-                    #p[k] *= np.prod(sp.gamma(N_dk[d, :] + self.alpha + select1)) # Linear-space probabilities.
-                    
-                p = np.exp(p - np.amax(p)) # Change to linear-space probabilities.
+                
+                # Change to linear-space probabilities. We can also multiply by a constant (maximum element in p) in order to improve the numerical stability of the results:
+                
+                p = np.exp(p - np.amax(p))
 
                 k_new   = rd.choice(self.K, p = p / np.sum(p))
                 Z[d][i] = k_new
+                
+                # Count update with the new topic assignment:
                 
                 N_k[k_new]     += 1
                 N_kw[k_new, w] += 1
                 N_dk[d, k_new] += 1
 
     def __estimate_eta(self, N_dk, N_d, S, iterations = 1000, gamma = 0.0001, epsilon = 0.001):
+        # Re-estimates the eta hyperparameter from its previous value and its gradient.
+        
         select = 1 - np.eye(self.K, dtype = int)
         select = np.reshape(select, (self.K, 1, self.K))
         select = np.repeat(select, self.D, axis = 1)
@@ -186,8 +194,8 @@ class CSLDA:
         
         print "Training CSLDA model with %d topics, %d documents and %d unique words..." % (self.K, self.D, self.W)
         
-        perplex = []
-        inv_acc = []
+        perplex = [] # Perplexity measure.
+        inv_acc = [] # Average inverse accuracy measure.
         
         # Allocate data structures:
         
@@ -204,7 +212,7 @@ class CSLDA:
         sample = 0
         
         for iteration in range(num_burn_in + num_skip * num_samples):
-            #print "\tIteration #%i..." % (iteration + 1)
+            print "\tIteration #%i..." % (iteration + 1)
             
             # Calculate sample:
             
@@ -224,7 +232,7 @@ class CSLDA:
                 perplex.append(a)
                 inv_acc.append(b)
                 
-                print "[%d, %f, %f]," % (iteration + 1, a, b)
+                print "[%d, %f, %f]," % (iteration + 1, a, b) # Print the test results.
         
         return (perplex, inv_acc)
 
@@ -232,7 +240,7 @@ class CSLDA:
         Dtrain = self.D
         self.D = S.shape[0]
         
-        #print "Testing CSLDA model with %d topics, %d documents and %d unique words..." % (self.K, self.D, self.W)
+        print "Testing CSLDA model with %d topics, %d documents and %d unique words..." % (self.K, self.D, self.W)
         
         perplex = 0.0
         inv_acc = 0.0
@@ -250,7 +258,7 @@ class CSLDA:
             N_k  += self.N_sk[sample]
         
             for iteration in range(num_burn_in + num_skip * num_samples):
-                #print "\tIteration #%i..." % (sample * (num_burn_in + num_skip * num_samples) + iteration + 1)
+                print "\tIteration #%i..." % (sample * (num_burn_in + num_skip * num_samples) + iteration + 1)
                 
                 # Calculate sample:
                 
