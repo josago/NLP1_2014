@@ -114,6 +114,61 @@ class CSLDA:
             
         return (N_kw, N_dk, N_k, N_d, Z)
     
+    def __gibbs_sampler_fast(self, N_kw, N_dk, N_k, N_d, Z, S, W, J = 1):
+        for d in range(W.shape[0]):
+            for i in range(W[d].shape[0]):
+                w     = W[d][i] # Word ID.
+                k_old = Z[d][i] # Old topic assignment.
+
+                # This calculates N without the element (d, i):
+
+                N_k[k_old]     -= 1
+                N_kw[k_old, w] -= 1
+                N_dk[d, k_old] -= 1
+                
+                # Total probabilities (up to Z):
+                
+                pT = np.zeros((self.K), dtype = float)
+                
+                # Pieces of the total probabilities:
+                
+                p1 = np.zeros((J, self.K),         dtype = float)
+                p2 = np.zeros((J, self.K),         dtype = float)
+                p3 = np.zeros((J, self.K, self.W), dtype = float)
+                
+                for j in range(J):
+                    p1[j] += np.log(N_k     + self.W * self.beta + j)
+                    p2[j] -= np.log(N_dk[d] + self.alpha         + j)
+                    p3[j] -= np.log(N_kw    + self.beta          + j)
+                
+                pT[:] = np.sum(p1) + np.sum(p2) + np.sum(p3)
+                
+                for k in range(self.K):
+                    selectK    = np.zeros((self.K), dtype = int)
+                    selectK[k] = 1
+                    
+                    pT[k] += np.log(N_k[k]     + self.W * self.beta + J) - p1[0, k]
+                    pT[k] -= np.log(N_dk[d, k] + self.alpha         + J) - p2[0, k]
+                    pT[k] -= np.log(N_kw[k, w] + self.beta          + J) - p3[0, k, w]
+                    
+                    if self.use_scores:
+                        posterior_mean = float(np.divide(N_dk[d] + selectK, np.repeat(np.reshape(N_d[d], (-1, 1)), self.K, axis = 1)).dot(np.reshape(self.eta, (-1, 1))))
+                    
+                        pT[k] -= (S[d] - posterior_mean) ** 2 / (2 * self.sigma ** 2)
+                        
+                # Change to linear-space probabilities. We can also multiply by a constant (maximum element in p) in order to improve the numerical stability of the results:
+                
+                pT = np.exp(pT - np.amax(pT))
+                
+                k_new   = rd.choice(self.K, p = pT / np.sum(pT))
+                Z[d][i] = k_new
+                
+                # Count update with the new topic assignment:
+                
+                N_k[k_new]     += 1
+                N_kw[k_new, w] += 1
+                N_dk[d, k_new] += 1
+    
     def __gibbs_sampler(self, N_kw, N_dk, N_k, N_d, Z, S, W):
         for d in range(W.shape[0]):
             for i in range(W[d].shape[0]):
@@ -216,7 +271,7 @@ class CSLDA:
             
             # Calculate sample:
             
-            self.__gibbs_sampler(N_kw, N_dk, N_k, N_d, Z, Strain, Wtrain)
+            self.__gibbs_sampler_fast(N_kw, N_dk, N_k, N_d, Z, Strain, Wtrain)
             self.__estimate_eta(N_dk, N_d, Strain)
             
             if iteration >= num_burn_in and (iteration - num_burn_in) % num_skip == 0:
@@ -262,7 +317,7 @@ class CSLDA:
                 
                 # Calculate sample:
                 
-                self.__gibbs_sampler(N_kw, N_dk, N_k, N_d, Z, S, W1)
+                self.__gibbs_sampler_fast(N_kw, N_dk, N_k, N_d, Z, S, W1)
 
                 if iteration >= num_burn_in and (iteration - num_burn_in) % num_skip == 0:
                     # Use sample:
@@ -308,11 +363,11 @@ Wtest  = Wsummary[idx_movies[20 : ]]
 # Train and test (on-line) the CSLDA model:
 
 use_scores = False
-K          = 10
+K          = 100
 
-num_burn_in = 25
+num_burn_in = 10
 num_skip    = 2
-num_samples = 50
+num_samples = 5
 
 cslda = CSLDA(use_scores, K, W)
 (perplex, inv_acc) = cslda.train(Strain, Wtrain, Stest, Wtest, num_burn_in, num_skip, num_samples)
