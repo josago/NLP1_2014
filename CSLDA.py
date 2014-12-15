@@ -282,14 +282,14 @@ class CSLDA:
                 
                 sample += 1
              
-                (a, b) = self.test(Stest, Wtest, num_burn_in, 1, 1, sample)
+                #(a, b) = self.test(Stest, Wtest, num_burn_in, 1, 1, sample)
                 
-                perplex.append(a)
-                inv_acc.append(b)
+                #perplex.append(a)
+                #inv_acc.append(b)
                 
-                print "[%d, %f, %f]," % (iteration + 1, a, b) # Print the test results.
+                #print "[%d, %f, %f]," % (iteration + 1, a, b) # Print the test results.
         
-        return (perplex, inv_acc)
+        #return (perplex, inv_acc)
 
     def test(self, S, W, num_burn_in, num_skip, num_samples, num_samples_train):
         Dtrain = self.D
@@ -350,37 +350,58 @@ class CSLDA:
 # Sort movies by scores and select a few from the worst ones, the best ones, and the ones in the middle:
 
 idx_sort   = np.argsort(S)
-idx_movies = rd.permutation(np.append(np.append(idx_sort[0 : 10], idx_sort[-11 : -1]), idx_sort[S.shape[0] / 2 - 5 : S.shape[0] / 2 + 5]))
+idx_movies = rd.permutation(np.append(np.append(idx_sort[0 : 40], idx_sort[-41 : -1]), idx_sort[S.shape[0] / 2 - 20 : S.shape[0] / 2 + 20]))
 
-# For the time being we will just use 30 movie summaries (20 training / 10 testing):
+# For the time being we will just use 120 movie summaries (100 training / 20 testing):
 
-Strain = S[idx_movies[ : 20]]
-Stest  = S[idx_movies[20 : ]]
+Strain = S[idx_movies[ : 100]]
+Stest  = S[idx_movies[100 : ]]
 
-Wtrain = Wsummary[idx_movies[ : 20]]
-Wtest  = Wsummary[idx_movies[20 : ]]
+Wtrain = Wsummary[idx_movies[ : 100]]
+Wtest  = Wsummary[idx_movies[100 : ]]
 
 # Train and test (on-line) the CSLDA model:
 
-use_scores = False
+use_scores = True
 K          = 100
 
-num_burn_in = 10
-num_skip    = 2
+num_burn_in = 20
+num_skip    = 4
 num_samples = 5
 
+# Tabs: (False, 50), (True, 50), (False, 100), (True, 100)
+# 20/10:
+# (11709.313774633783, 4260.7631914491512)
+# (10921.424693267934, 3839.3011201244503)
+# (14298.43957720867, 6899.2350114671572)
+# (15228.764759005151, 7148.5139050439011)
+# 40/20:
+# (7607.3060036837387, 2300.1320291944726)
+# (8273.0661420362176, 2250.4293250500805)
+# (10485.714707456284, 3845.9687278893534)
+# (10015.880508660515, 3902.1489647376452)
+# 100/20:
+# Tabs: (False, 25), (True, 25), (False, 50), (True, 50), (False, 100), (True, 100)
+# (4128.1777177934755, 845.37121644905733)
+# (4005.1030822773778, 805.12987007555182)
+# (5333.5841967207916, 1318.7661096714285)
+# (5503.5980915833625, 1372.1460525226298)
+# (6954.5400186487122, 2049.4715499044451)
+# (7082.9914392853134, 2067.7660401967569)
+
 cslda = CSLDA(use_scores, K, W)
-(perplex, inv_acc) = cslda.train(Strain, Wtrain, Stest, Wtest, num_burn_in, num_skip, num_samples)
+cslda.train(Strain, Wtrain, Stest, Wtest, num_burn_in, num_skip, num_samples)
+print cslda.test(Stest, Wtest, num_burn_in, num_skip, num_samples, num_samples)
 
 # Plot the results:
 
-print perplex
-print inv_acc
+#print perplex
+#print inv_acc
 
-plt.subplot(2, 1, 1)
-plt.title("Perplexity")
-plt.plot(perplex)
-plt.subplot(2, 1, 2)
-plt.title("Inverse accuracy")
-plt.plot(inv_acc)
-plt.show()
+#plt.subplot(2, 1, 1)
+#plt.title("Perplexity")
+#plt.plot(perplex)
+#plt.subplot(2, 1, 2)
+#plt.title("Inverse accuracy")
+#plt.plot(inv_acc)
+#plt.show()
