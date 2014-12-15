@@ -50,10 +50,11 @@ In this section we describe the characteristics of the problem and take a closer
 
 \subsection{Data set}
 The texts that we use in ths model are summaries of movies.
-These summaries have been written by users of the popular online movie database IMDb, with the intent to outline the events that occur in the movie to the reader.
+These summaries have been written by users of the popular online movie database IMDb, with the intent to outline the events that occur in the movie.
 
-This is fundamentally different from movie reviews, as the author is not supposed to inject his or her own opinion of the movie in the summary.
-However, this can obviously never be fully accomplished, since the author must have a opinion on the movie in question.
+This is fundamentally different from movie reviews, as the author is not supposed to convey his or her own opinion of the movie in the summary.
+However, this can obviously never be fully prevented, since the author has seen the movie in question and is willing to spend time and effort to write the summary.
+In this light we make an important assumption:
 
 An important assumption we make is that the authors wrote the summaries voluntarily, without any compensation or external influence which might affect the writing of the author.
 Moreover, we assume that the summary also contains the authors personal opinion on the movie, although this does not have to be explicitly mentioned.
@@ -226,6 +227,8 @@ We rewrite the log gamma terms again to get:
 \[\propto \sum_{j=0}^\infty \sum_{k'}\log(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta + j) 
 -\log(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha +j)-\]
 \[\sum_{j=0}^\infty \sum_{k',w} \log(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta + j) -\frac{1}{2 \sigma^2}\left(s_d - \eta^\top \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}\right)^2\]
+
+\[\left(s_d - \eta^\top \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}\right)^2 \rightarrow \left(s_d - \eta^\top \frac{\sum_k N_{d{k'}}e_k  + \mathbb{I}(k' = k)}{N_d}\right)^2\]
 
 
 \section{Experiments}
