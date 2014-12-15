@@ -350,20 +350,20 @@ class CSLDA:
 # Sort movies by scores and select a few from the worst ones, the best ones, and the ones in the middle:
 
 idx_sort   = np.argsort(S)
-idx_movies = rd.permutation(np.append(np.append(idx_sort[0 : 40], idx_sort[-41 : -1]), idx_sort[S.shape[0] / 2 - 20 : S.shape[0] / 2 + 20]))
+idx_movies = rd.permutation(np.append(np.append(idx_sort[0 : 100], idx_sort[-101 : -1]), idx_sort[S.shape[0] / 2 - 50 : S.shape[0] / 2 + 50]))
 
-# For the time being we will just use 120 movie summaries (100 training / 20 testing):
+# For the time being we will just use 300 movie summaries (250 training / 50 testing):
 
-Strain = S[idx_movies[ : 100]]
-Stest  = S[idx_movies[100 : ]]
+Strain = S[idx_movies[ : 250]]
+Stest  = S[idx_movies[250 : ]]
 
-Wtrain = Wsummary[idx_movies[ : 100]]
-Wtest  = Wsummary[idx_movies[100 : ]]
+Wtrain = Wsummary[idx_movies[ : 250]]
+Wtest  = Wsummary[idx_movies[250 : ]]
 
 # Train and test (on-line) the CSLDA model:
 
 use_scores = True
-K          = 100
+K          = 25
 
 num_burn_in = 20
 num_skip    = 4
@@ -388,6 +388,10 @@ num_samples = 5
 # (5503.5980915833625, 1372.1460525226298)
 # (6954.5400186487122, 2049.4715499044451)
 # (7082.9914392853134, 2067.7660401967569)
+# 250/50:
+# Tabs: (False, 25), (True, 25)
+#
+#
 
 cslda = CSLDA(use_scores, K, W)
 cslda.train(Strain, Wtrain, Stest, Wtest, num_burn_in, num_skip, num_samples)

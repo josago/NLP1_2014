@@ -98,30 +98,36 @@
 
 \begin{frame}{Results}
 	\begin{itemize}
-	\item Initial selection of 30 movies (20 training / 10 testing) with balanced scores.
-	\item Using 10 topics and no scores.
-	\end{itemize}
-
+	\item Initial selection of 120 movies (100 training / 20 testing) with balanced scores.
+	\item Perplexity measure:
+	
 	\begin{center}
-	\includegraphics[width=\textwidth]{results_perplexity.png}
+	\begin{tabular}{cc|ccc}
+		LDA topics      & & 25 & 50 & 100 \\ \hline
+		\multirow{2}{*}{Using scores?} & No  & 4128 & 5333 & 6954 \\
+		                               & Yes & \textbf{4005} & 5503 & 7082 \\
+	\end{tabular}
 	\end{center}
-\end{frame}
-
-\begin{frame}{Results}
-	\begin{itemize}
-	\item Initial selection of 30 movies (20 training / 10 testing) with balanced scores.
-	\item Using 10 topics and no scores.
-	\end{itemize}
-
+	
+	\item Inverse accuracy measure:
+	
 	\begin{center}
-	\includegraphics[width=\textwidth]{results_accuracy.png}
+	\begin{tabular}{cc|ccc}
+		LDA topics      & & 25 & 50 & 100 \\ \hline
+		\multirow{2}{*}{Using scores?} & No  & 845 & 1318 & 2049 \\
+		                               & Yes & \textbf{805} & 1372 & 2067 \\
+	\end{tabular}
 	\end{center}
+	\end{itemize}
 \end{frame}
 
 \section{Discussion}
 
 \begin{frame}{Discussion}
- 
+	\begin{itemize}
+	\item Use of few movies $\Rightarrow$ the model starts overfitting with 50-100 topics already.
+	\item Slight predictive improvement if using movie scores, but it is not significant.
+	\end{itemize}
 \end{frame}
 
 \section{Challenges}
