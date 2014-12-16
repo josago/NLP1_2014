@@ -388,10 +388,10 @@ num_samples = 5
 # (5503.5980915833625, 1372.1460525226298)
 # (6954.5400186487122, 2049.4715499044451)
 # (7082.9914392853134, 2067.7660401967569)
-# 250/50:
+# 250/50, 3 chains:
 # Tabs: (False, 25), (True, 25)
-#
-#
+# (3237.891, 597.02087)
+# (2955.0931, 571.97287)
 
 cslda = CSLDA(use_scores, K, W)
 cslda.train(Strain, Wtrain, Stest, Wtest, num_burn_in, num_skip, num_samples)
