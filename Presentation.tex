@@ -121,6 +121,32 @@
 	\end{itemize}
 \end{frame}
 
+\begin{frame}{Results}
+	\begin{itemize}
+	\item Using 300 movies (250 training / 50 testing).
+	\item Results averaged across 3 MCMC chains.
+	\item Perplexity measure:
+	
+	\begin{center}
+	\begin{tabular}{cc|ccc}
+		LDA topics      & & 25 \\ \hline
+		\multirow{2}{*}{Using scores?} & No  & 3237 \\
+		                               & Yes & \textbf{2955} \\
+	\end{tabular}
+	\end{center}
+	
+	\item Inverse accuracy measure:
+	
+	\begin{center}
+	\begin{tabular}{cc|ccc}
+		LDA topics      & & 25 \\ \hline
+		\multirow{2}{*}{Using scores?} & No  & 597 \\
+		                               & Yes & \textbf{571} \\
+	\end{tabular}
+	\end{center}
+	\end{itemize}
+\end{frame}
+
 \section{Discussion}
 
 \begin{frame}{Discussion}
