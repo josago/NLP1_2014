@@ -350,15 +350,15 @@ class CSLDA:
 # Sort movies by scores and select a few from the worst ones, the best ones, and the ones in the middle:
 
 idx_sort   = np.argsort(S)
-idx_movies = rd.permutation(np.append(np.append(idx_sort[0 : 100], idx_sort[-101 : -1]), idx_sort[S.shape[0] / 2 - 50 : S.shape[0] / 2 + 50]))
+idx_movies = rd.permutation(np.append(np.append(idx_sort[0 : 40], idx_sort[-41 : -1]), idx_sort[S.shape[0] / 2 - 20 : S.shape[0] / 2 + 20]))
 
-# For the time being we will just use 300 movie summaries (250 training / 50 testing):
+# For the time being we will just use 120 movie summaries (100 training / 20 testing):
 
-Strain = S[idx_movies[ : 250]]
-Stest  = S[idx_movies[250 : ]]
+Strain = S[idx_movies[ : 100]]
+Stest  = S[idx_movies[100 : ]]
 
-Wtrain = Wsummary[idx_movies[ : 250]]
-Wtest  = Wsummary[idx_movies[250 : ]]
+Wtrain = Wsummary[idx_movies[ : 100]]
+Wtest  = Wsummary[idx_movies[100 : ]]
 
 # Train and test (on-line) the CSLDA model:
 
@@ -369,29 +369,13 @@ num_burn_in = 20
 num_skip    = 4
 num_samples = 5
 
-# Tabs: (False, 50), (True, 50), (False, 100), (True, 100)
-# 20/10:
-# (11709.313774633783, 4260.7631914491512)
-# (10921.424693267934, 3839.3011201244503)
-# (14298.43957720867, 6899.2350114671572)
-# (15228.764759005151, 7148.5139050439011)
-# 40/20:
-# (7607.3060036837387, 2300.1320291944726)
-# (8273.0661420362176, 2250.4293250500805)
-# (10485.714707456284, 3845.9687278893534)
-# (10015.880508660515, 3902.1489647376452)
-# 100/20:
-# Tabs: (False, 25), (True, 25), (False, 50), (True, 50), (False, 100), (True, 100)
-# (4128.1777177934755, 845.37121644905733)
-# (4005.1030822773778, 805.12987007555182)
-# (5333.5841967207916, 1318.7661096714285)
-# (5503.5980915833625, 1372.1460525226298)
-# (6954.5400186487122, 2049.4715499044451)
-# (7082.9914392853134, 2067.7660401967569)
-# 250/50, 3 chains:
-# Tabs: (False, 25), (True, 25)
-# (3237.891, 597.02087)
-# (2955.0931, 571.97287)
+# Tabs (avg. 3 chains): J = 1, 2, 3, 4, 5, 6
+# (4100, 858)
+# (4125, 871)
+# (4082, 823)
+# (4251, 863)
+# (3754, 877)
+# (3881, 815)
 
 cslda = CSLDA(use_scores, K, W)
 cslda.train(Strain, Wtrain, Stest, Wtest, num_burn_in, num_skip, num_samples)
