@@ -50,10 +50,11 @@ In this section we describe the characteristics of the problem and take a closer
 
 \subsection{Data set}
 The texts that we use in ths model are summaries of movies.
-These summaries have been written by users of the popular online movie database IMDb, with the intent to outline the events that occur in the movie to the reader.
+These summaries have been written by users of the popular online movie database IMDb, with the intent to outline the events that occur in the movie.
 
-This is fundamentally different from movie reviews, as the author is not supposed to inject his or her own opinion of the movie in the summary.
-However, this can obviously never be fully accomplished, since the author must have a opinion on the movie in question.
+This is fundamentally different from movie reviews, as the author is not supposed to convey his or her own opinion of the movie in the summary.
+However, this can obviously never be fully prevented, since the author has seen the movie in question and is willing to spend time and effort to write the summary.
+In this light we make an important assumption:
 
 An important assumption we make is that the authors wrote the summaries voluntarily, without any compensation or external influence which might affect the writing of the author.
 Moreover, we assume that the summary also contains the authors personal opinion on the movie, although this does not have to be explicitly mentioned.
@@ -123,6 +124,13 @@ We start by recalling the full likelihood expression (i.e. for all variables, bo
 \begin{equation}
  \left[ \prod_{d = 1}^D \Dir(\theta_d \mid \alpha) \mathcal{N}(s_d \mid \eta^\top \bar{z}_d, \sigma) \prod_{i = 1}^{N_d} \Mult(z_{d, i} \mid \theta_d) \Mult(w_{d, i} \mid \varphi_{z_{d, i}}) \right]
 \end{equation}
+\[\left[ \prod_{d} \Dir(\theta_d \mid \alpha) \prod_d \Mult(\phi_d \mid \theta_d )\Mult(w_d \mid \phi_d)\right]\]
+\[\int_{\phi_0}\int_{\phi_1}\dots \int_{\phi_k} P(\theta, s, z, \phi, W \mid \alpha, \beta, \eta, \sigma)\]
+\[=\left[ \prod_k \Dir(\phi_k \mid \beta) \right] \left[ \prod_d \Dir(\theta_d \mid \alpha) \mathcal{N}(\eta^\top \bar{z}_d, \sigma) \prod_i^{N_d} \Mult(z) \right]\]
+\[\times \left[  \prod_d \prod_i^{N_d} \Mult(w_{di} \mid \phi_{z_d})\right] \rightarrow \prod_d \prod_w \prod_k \left[ \Mult(w \mid \phi_k)^{N_{dk}}\right]\]
+\[P(\theta, s, z, w \mid \alpha, \beta, \eta, \sigma) = \left[ \prod_k \int_{\phi_k} \Dir(\phi_k \mid \beta) \prod_d \prod_w \left[ \Mult(w \mid \phi_k)^{N_{dk}}\right] \right]\]
+\[ = \left[ \prod_d \Dir(\theta_d \mid \alpha) \mathcal{N}(s_d \mid \eta^\top \bar{z}_d, \sigma) \prod_i^N \Mult(z_{di} \mid \theta_d) \right]\]
+\[\times \left[ \prod_k \frac{\Gamma(\beta) \Gamma(W\beta)}{\Gamma(N_k + W\beta)} \prod_w \frac{\Gamma(N_{kw}+\beta)}{\Gamma(\beta)}\right]\]
 
 We will first integrate out the latent variable $\Phi$. The first thing that can be noticed is that every $\varphi_k$ is independently sampled, and thus can be integrated separatedly:
 
@@ -246,6 +254,29 @@ Trying to apply the previous formula as an update rule for $\eta$ does not conve
 $$ \eta_k^{new} \leftarrow (1 - \gamma) \eta_k^{old} + \gamma \frac{\sum_d \frac{N_{dk}}{N_d} \left( s_d - \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right)}{\sum_d \left( \frac{N_{dk}}{N_d}  \right)^2 + \epsilon}$$
 
 With $1 \gg \gamma > 0$ in order for the previous series to converge and $1 \gg \epsilon > 0$ is a smoothing constant.
+
+\subsubsection{Gibbs Sampler}
+Gibbs sampler:
+
+$$ P(z_{di} = k \mid Z^{\backslash i}, S, W, \alpha, \beta, \eta, \sigma) \propto P(z_{di} = k, Z_{-i}, S, W, \alpha, \beta, \eta, \sigma) $$
+$$ \propto \left[ \prod_{k'} \frac{\prod_w \Gamma(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta)}{\Gamma(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta)} \right] \times $$
+$$ \mathcal{N}\left(s_d\, \left|\, \eta^\top\frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}, \sigma\right. \right) \prod_{k'} \Gamma(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha) $$
+
+Or in log-space:
+\begin{align*}
+&\propto \sum_{k',w} \log \Gamma(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta) - \log \Gamma(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta)\\
+&\hspace{10pt}-\frac{1}{2 \sigma^2}\left(s_d - \eta^\top \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}\right)^2 + \sum_{k'} \log \Gamma(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha)
+\end{align*}
+  
+
+
+We rewrite the log gamma terms again to get:
+\[\propto \sum_{j=0}^\infty \sum_{k'}\log(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta + j) 
+-\log(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha +j)-\]
+\[\sum_{j=0}^\infty \sum_{k',w} \log(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta + j) -\frac{1}{2 \sigma^2}\left(s_d - \eta^\top \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}\right)^2\]
+
+\[\left(s_d - \eta^\top \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}\right)^2 \rightarrow \left(s_d - \eta^\top \frac{\sum_k N_{d{k'}}e_k  + \mathbb{I}(k' = k)}{N_d}\right)^2\]
+
 
 \section{Experiments}
 %• Any details about experiments (dataset sizes, parameter selection, etc)
