@@ -1,10 +1,8 @@
 \documentclass{article} % For LaTeX2e
 \usepackage{nips14submit_e,times}
-\usepackage{hyperref}
 \usepackage{amsmath, amssymb, hyperref, multirow}
-\usepackage{url}
-%\documentstyle[nips14submit_09,times,art10]{article} % For LaTeX 2.09
-
+\usepackage{tikz}
+\usepackage{url, caption}
 
 \title{Using scores to improve language modelling movie plot summaries}
 
@@ -50,391 +48,459 @@ Amsterdam, Postbox 94216, 1090 GE\\
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec velit est, fringilla quis mollis in, dapibus nec ipsum. Donec volutpat sapien nec nibh suscipit vehicula. In hac habitasse platea dictumst. Phasellus mattis, enim sit amet tincidunt auctor, ligula ipsum fermentum libero, ut gravida mauris risus ac magna. Vestibulum a tempor mi. Donec viverra feugiat magna, eget lobortis neque volutpat eu. Nullam vehicula vitae nunc in aliquet. Ut vulputate eget eros quis mollis. Curabitur eget egestas est. Vestibulum tincidunt nisl nec justo hendrerit, in ullamcorper mauris porta. Nullam erat tortor, aliquam non purus nec, facilisis sodales risus.
 \end{abstract}
 
-\section{Submission of papers to NIPS 2014}
+\section{Introduction} 
+%• Description of the problem area and the problem itself
+%• What is the research question / goal?
+%• Why is this an important / meaningful / interesting problem to consider?
+%• The very basic idea of the approach and why this is a reasonable approach for this problem?
+In recent years, several successes have been booked for applying semantic analysis on user comments of movies.
+In this report we use those same techniques, but apply them to plot summaries of movies.
+Using these corpus of text we try to determine whether the contents of these summaries and the score these movies are rated with on the popular online movie database IMDb \cite{IMDb} are correlated.
+We do this by comparing the performance on two latent Dirichlet allocation models -- one with and another without using the scores.
+When we achieve better results when we are using the scores, we can conclude that there is a significant correlation between the scores and the texts of the summaries.
 
-NIPS requires electronic submissions.  The electronic submission site is  
-\begin{center}
-   \url{http://papers.nips.cc}
-\end{center}
+First we describe the characteristics of the problem and take a closer look at the data set in Section~\ref{sec:problem}.
+Next, we outline the model and Gibbs sampler in Section~\ref{sec:approach}.
+We describe which experiments we ran in Section~\ref{sec:experiments} along with their results.
+Finally, we provide our final remarks in Section~\ref{sec:discussion}.
 
-Please read carefully the
-instructions below, and follow them faithfully.
-\subsection{Style}
+This project is part of the Natural Language Processing course of the UvA from Fall 2014.
 
-Papers to be submitted to NIPS 2014 must be prepared according to the
-instructions presented here. Papers may be only up to eight pages long,
-including figures. Since 2009 an additional ninth page \textit{containing only
-cited references} is allowed. Papers that exceed nine pages will not be
-reviewed, or in any other way considered for presentation at the conference.
-%This is a strict upper bound. 
+\section{Problem description}
+\label{sec:problem}
+%• Explain the problem; what kind of assumptions / observations you have about the problem
+%• Explaining (perhaps briefly) any necessary preprocessing / postprocesing / data acquisition stages
+In this section we describe the characteristics of the problem and take a closer look at the data set that we use.
 
-Please note that this year we have introduced automatic line number generation
-into the style file (for \LaTeXe and Word versions). This is to help reviewers
-refer to specific lines of the paper when they make their comments. Please do
-NOT refer to these line numbers in your paper as they will be removed from the
-style file for the final version of accepted papers.
+%\subsection{Assumptions and observations}
+%The core assumption of this project is that 
 
-The margins in 2014 are the same as since 2007, which allow for $\approx 15\%$
-more words in the paper compared to earlier years. We are also again using 
-double-blind reviewing. Both of these require the use of new style files.
+\subsection{Data set}
+The texts that we use in ths model are summaries of movies.
+These summaries have been written by users of the popular online movie database IMDb, with the intent to outline the events that occur in the movie.
+They were gathered by crawling the IMDb website.
+Only movies which had their scripts available on the online script website \url{IMSDb.com} \cite{IMSDb} at time of this writing were selected, to allow for an easy comparison when using the full script instead of summaries in a future study.
 
-Authors are required to use the NIPS \LaTeX{} style files obtainable at the
-NIPS website as indicated below. Please make sure you use the current files and
-not previous versions. Tweaking the style files may be grounds for rejection.
+This is fundamentally different from movie reviews, as the author is not supposed to convey his or her own opinion of the movie in the summary.
+However, this can obviously never be fully prevented, since the author has seen the movie in question and is willing to spend time and effort to write the summary.
+In this light we make the following assumptions.
 
-%% \subsection{Double-blind reviewing}
+\begin{enumerate}
+  \item An important assumption we make is that the authors wrote the summaries voluntarily, without any compensation or external influence which might affect the writing of the author.
+  \item Additionally, we assume that the summary also contains the authors personal opinion on the movie, although this does not have to be explicitly mentioned.
+\end{enumerate}
+Only if these assumptions hold, can we try to find a correlation between the summary and the score of the movie.
 
-%% This year we are doing double-blind reviewing: the reviewers will not know 
-%% who the authors of the paper are. For submission, the NIPS style file will 
-%% automatically anonymize the author list at the beginning of the paper.
+An example plot summary from IMDb can be found below. 
+It is from the movie Big Fish (2003) and is written by a user who wanted to remain anonymous.
+\begin{quotation}
+  \emph{The story revolves around a dying father and his son, who is trying to learn more about his dad by piecing together the stories he has gathered over the years.
+  The son winds up re-creating his father's elusive life in a series of legends and myths inspired by the few facts he knows.
+  Through these tales, the son begins to understand his father's great feats and his great failings.}
+  \flushright{by Anonymous}
+\end{quotation}
 
-%% Please write your paper in such a way to preserve anonymity. Refer to
-%% previous work by the author(s) in the third person, rather than first
-%% person. Do not provide Web links to supporting material at an identifiable
-%% web site.
+However, a different summary may have different properties.
+Below is another plot summary, about the movie ``Indiana Jones and the Last Crusade'', written by IMDb user commanderblue.
+\begin{quotation}
+  \emph{Indiana Jones, famed adventurer and archaeologist acquires a diary that holds clues and a map with no names to find the mysterious Holy Grail -- which was sent from his father, Dr. Henry Jones, in Italy. 
+  Upon hearing from a private collector, Walter Donavan, that the mission for the Holy Grail went astray with the disappearance of his father, Indiana Jones and museum curator Marcus Brody venture to Italy in search of Indy's father. 
+  However, upon retrieving Dr. Henry Jones in Nazi territory, the rescue mission turns into a race to find the Holy Grail before the Nazis do -- who plan to use it for complete world domination for their super-race. 
+  With the diary as a vital key and the map with no names as a guide, Indiana Jones once again finds himself in another death defying adventure of pure excitement.}
+  \flushright{by commanderblue}
+\end{quotation}
 
-%%\subsection{Electronic submission}
-%%
-%% \textbf{THE SUBMISSION DEADLINE IS June 6, 2014. SUBMISSIONS MUST BE LOGGED BY
-%% 23:00, June 6, 2014, UNIVERSAL TIME}
+Among other differences, this summary uses more proper pronouns, whose uniqueness could be difficult for our algorithm to handle properly.
+To deal with this, we perform some basic manipulations on the dataset.
 
-%% You must enter your submission in the electronic submission form available at
-%% the NIPS website listed above. You will be asked to enter paper title, name of
-%% all authors, keyword(s), and data about the contact
-%% author (name, full address, telephone, fax, and email). You will need to
-%% upload an electronic (postscript or pdf) version of your paper.
+\subsection{Data manipulation}
+To increase performance and speed up the algorithm, we prune and stem the dataset.
 
-%% You can upload more than one version of your paper, until the
-%% submission deadline. We strongly recommended uploading your paper in
-%% advance of the deadline, so you can avoid last-minute server congestion.
-%%
-%% Note that your submission is only valid if you get an e-mail
-%% confirmation from the server. If you do not get such an e-mail, please
-%% try uploading again. 
+First we prune the dataset, by discarding infrequent words. 
+We define a word to be infrequent when it only occurs in 1 summary. 
+This gets rid of words like ``Donovan'' from the ``Indiana Jones an the Last Crusade'' summary, but keeps ``Indiana Jones'', which might have some relation with the score of the movie.
 
+After that, we use a basic stemmer to reduce words to their stems.
+This significantly reduces the number of different words that occur in the dataset, which increases the execution speed of our algorithm. 
+We use the stemmer Lingua for this project \cite{lingua}.
 
-\subsection{Retrieval of style files}
+\subsection{Scores and score distribution}
+Each movie in the data set is ranked with a certain score from IMDb.
+These scores lie between 1 and 10 (inclusive) and are precise up to 1 decimal position.
+As is mentioned previously, these scores are submitted by users, however IMDb performs some normalization 
+The distribution of scores in our data set can be seen in Figure~\ref{fig:scorehist}.
 
-The style files for NIPS and other conference information are available on the World Wide Web at
-\begin{center}
-   \url{http://www.nips.cc/}
-\end{center}
-The file \verb+nips2014.pdf+ contains these 
-instructions and illustrates the
-various formatting requirements your NIPS paper must satisfy. \LaTeX{}
-users can choose between two style files:
-\verb+nips11submit_09.sty+ (to be used with \LaTeX{} version 2.09) and
-\verb+nips11submit_e.sty+ (to be used with \LaTeX{}2e). The file
-\verb+nips2014.tex+ may be used as a ``shell'' for writing your paper. All you
-have to do is replace the author, title, abstract, and text of the paper with
-your own. The file
-\verb+nips2014.rtf+ is provided as a shell for MS Word users.
-
-The formatting instructions contained in these style files are summarized in
-sections \ref{gen_inst}, \ref{headings}, and \ref{others} below.
-
-%% \subsection{Keywords for paper submission}
-%% Your NIPS paper can be submitted with any of the following keywords (more than one keyword is possible for each paper):
-
-%% \begin{verbatim}
-%% Bioinformatics
-%% Biological Vision
-%% Brain Imaging and Brain Computer Interfacing
-%% Clustering
-%% Cognitive Science
-%% Control and Reinforcement Learning
-%% Dimensionality Reduction and Manifolds
-%% Feature Selection
-%% Gaussian Processes
-%% Graphical Models
-%% Hardware Technologies
-%% Kernels
-%% Learning Theory
-%% Machine Vision
-%% Margins and Boosting
-%% Neural Networks
-%% Neuroscience
-%% Other Algorithms and Architectures
-%% Other Applications
-%% Semi-supervised Learning
-%% Speech and Signal Processing
-%% Text and Language Applications
-
-%% \end{verbatim}
-
-\section{General formatting instructions}
-\label{gen_inst}
-
-The text must be confined within a rectangle 5.5~inches (33~picas) wide and
-9~inches (54~picas) long. The left margin is 1.5~inch (9~picas).
-Use 10~point type with a vertical spacing of 11~points. Times New Roman is the
-preferred typeface throughout. Paragraphs are separated by 1/2~line space,
-with no indentation.
-
-Paper title is 17~point, initial caps/lower case, bold, centered between
-2~horizontal rules. Top rule is 4~points thick and bottom rule is 1~point
-thick. Allow 1/4~inch space above and below title to rules. All pages should
-start at 1~inch (6~picas) from the top of the page.
-
-%The version of the paper submitted for review should have ``Anonymous Author(s)'' as the author of the paper.
-
-For the final version, authors' names are
-set in boldface, and each name is centered above the corresponding
-address. The lead author's name is to be listed first (left-most), and
-the co-authors' names (if different address) are set to follow. If
-there is only one co-author, list both author and co-author side by side.
-
-Please pay special attention to the instructions in section \ref{others}
-regarding figures, tables, acknowledgments, and references.
-
-\section{Headings: first level}
-\label{headings}
-
-First level headings are lower case (except for first word and proper nouns),
-flush left, bold and in point size 12. One line space before the first level
-heading and 1/2~line space after the first level heading.
-
-\subsection{Headings: second level}
-
-Second level headings are lower case (except for first word and proper nouns),
-flush left, bold and in point size 10. One line space before the second level
-heading and 1/2~line space after the second level heading.
-
-\subsubsection{Headings: third level}
-
-Third level headings are lower case (except for first word and proper nouns),
-flush left, bold and in point size 10. One line space before the third level
-heading and 1/2~line space after the third level heading.
-
-\section{Citations, figures, tables, references}
-\label{others}
-
-These instructions apply to everyone, regardless of the formatter being used.
-
-\subsection{Citations within the text}
-
-Citations within the text should be numbered consecutively. The corresponding
-number is to appear enclosed in square brackets, such as [1] or [2]-[5]. The
-corresponding references are to be listed in the same order at the end of the
-paper, in the \textbf{References} section. (Note: the standard
-\textsc{Bib\TeX} style \texttt{unsrt} produces this.) As to the format of the
-references themselves, any style is acceptable as long as it is used
-consistently.
-
-As submission is double blind, refer to your own published work in the 
-third person. That is, use ``In the previous work of Jones et al.\ [4]'',
-not ``In our previous work [4]''. If you cite your other papers that
-are not widely available (e.g.\ a journal paper under review), use
-anonymous author names in the citation, e.g.\ an author of the
-form ``A.\ Anonymous''. 
-
-
-\subsection{Footnotes}
-
-Indicate footnotes with a number\footnote{Sample of the first footnote} in the
-text. Place the footnotes at the bottom of the page on which they appear.
-Precede the footnote with a horizontal rule of 2~inches
-(12~picas).\footnote{Sample of the second footnote}
-
-\subsection{Figures}
-
-All artwork must be neat, clean, and legible. Lines should be dark
-enough for purposes of reproduction; art work should not be
-hand-drawn. The figure number and caption always appear after the
-figure. Place one line space before the figure caption, and one line
-space after the figure. The figure caption is lower case (except for
-first word and proper nouns); figures are numbered consecutively.
-
-Make sure the figure caption does not get separated from the figure.
-Leave sufficient space to avoid splitting the figure and figure caption.
-
-You may use color figures. 
-However, it is best for the
-figure captions and the paper body to make sense if the paper is printed
-either in black/white or in color.
-\begin{figure}[h]
-\begin{center}
-%\framebox[4.0in]{$\;$}
-\fbox{\rule[-.5cm]{0cm}{4cm} \rule[-.5cm]{4cm}{0cm}}
-\end{center}
-\caption{Sample figure caption.}
+\begin{figure}[ht!]
+  \centering
+  \includegraphics[width=\textwidth]{scores_histogram.png}
+  \caption{Score distribution between 0 and 10 of the complete data set.}
+  \label{fig:scorehist}
 \end{figure}
 
-\subsection{Tables}
+Notice how almost all scores lie between 6 and 8.
+This is likely due to the fact that the scripts on IMSDb are requested and provided by users of the website. 
+So a movie that is liked by many people will have a high chance to have its script being requested and supplied on IMSDb.
+This results in this skewed distribution: a movie on IMSDb will have a high chance to be liked by many people.
 
-All tables must be centered, neat, clean and legible. Do not use hand-drawn
-tables. The table number and title always appear before the table. See
-Table~\ref{sample-table}.
+Another thing to note is that IMDb uses a weighted average, instead of the arithmatic average for its score.
+According to IMDb, `various filters are applied to the raw data in order to eliminate and reduce attempts at ``vote stuffing'' by individuals more interested in changing the current rating of a movie than giving their true opinion of it.''
+The exact formula that is used to calculate the weighted average is kept secret, to be able to maintain its effectiveness. 
 
-Place one line space before the table title, one line space after the table
-title, and one line space after the table. The table title must be lower case
-(except for first word and proper nouns); tables are numbered consecutively.
+This weighted average can vary quite significantly with the arithmatic mean. 
+For example, the arithmatic mean of the scores of the movie ``The Amityville Asylum'' is 3.3, while its weighted average is 2.6.
+IMDb claims the weighted score provides a more accurate vote average than the arithmatic mean.
 
-\begin{table}[t]
-\caption{Sample table title}
-\label{sample-table}
+\section{Approach}
+\label{sec:approach}
+%• Explain the model; if any important assumptions are made at this stage, explain why they are reasonable or necessary
+%• Explain learning / inference algorithms
+In this section we explain our model, and show the derivations we use for the Gibbs sampler.
+
+\subsection{Model}
+In this section we describe the extended topic based model we used.
+It is taken from \cite{SLDA}.
+
+The generative version of LDA is as follows:
+\begin{enumerate}
+  \item Draw topic proportions $\theta \mid \alpha \sim \Dir(\alpha)$.
+  \item For each word:
+  \begin{enumerate}
+    \item Draw topic assignment $z_n \mid \theta \sim \Mult(\theta)$.
+    \item Draw word $w_n \mid z_n, \beta_{1:K} \sim \Mult(\beta_{zn})$.
+  \end{enumerate}
+\end{enumerate}
+Its graphical representation can be seen in Figure~\ref{fig:LDA}.
+It makes use of the hyperparameters $\alpha$, which influences the topic distributions of a document, and of $\beta$, which influences the topic definitions of each topic.
+
+\begin{figure}[ht!]
+  \centering
+  \includegraphics[width=0.6\textwidth]{LDA.png}
+  \caption{A graphical representation of traditional LDA model.}
+  \label{fig:LDA}
+\end{figure}
+
+We however, use an extended version of LDA, which makes use of the given scores. 
+Because of this, a third step is added to the generative process:
+
+\begin{enumerate}
+  \item Draw topic proportions $\theta \mid \alpha \sim \Dir(\alpha)$.
+  \item For each word:
+  \begin{enumerate}
+    \item Draw topic assignment $z_n \mid \theta \sim \Mult(\theta)$.
+    \item Draw word $w_n \mid z_n, \beta_{1:K} \sim \Mult(\beta_{zn})$.
+  \end{enumerate}
+  \item[3.] Draw response variable $y \mid z_{1:N}, \eta, \sigma^2 \sim \mathcal{N}(\eta^\top \bar{z}, \sigma^2)$.
+\end{enumerate}
+
+This version can be called supervised LDA or SLDA.
+Its graphical representation can be seen in Figure~\ref{fig:SLDA}.
+Note that we use a symmetric $\alpha$ and $\beta$, i.e. $\alpha=(\alpha_1, \alpha_2, \dots, \alpha_K)$, where $\forall i,j \leq K: \alpha_i = \alpha_j$ and similar for $\beta$.
+
+\begin{figure}[ht!]
+  \centering
+  \includegraphics[width=0.6\textwidth]{SLDA.png}
+  \caption{A graphical representation of our modified LDA model.}
+  \label{fig:SLDA}
+\end{figure}
+
+\subsubsection{Collapsed Supervised Latent Dirichlet Allocation}
+In this section we will give the derivations for the collapsed supervised LDA model.
+
+We start by recalling the full likelihood expression (i.e. for all variables, both latent and visible) of the model:
+\begin{equation}
+\label{eq:prodpart}
+\begin{gathered}
+P(\Phi, \Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma) = \left[ \prod_{k = 1}^K \Dir(\phi_k \mid \beta) \right]  \\
+\times \left[ \prod_{d = 1}^D \Dir(\theta_d \mid \alpha) \mathcal{N}(s_d \mid \eta^\top \bar{z}_d, \sigma) \prod_{i = 1}^{N_d} \Mult(z_{di} \mid \theta_d) \Mult(w_{di} \mid \varphi_{z_{di}}) \right]
+\end{gathered}
+\end{equation}
+
+%\[= \left[ \prod_{d} \Dir(\theta_d \mid \alpha) \prod_d \Mult(\phi_d \mid \theta_d )\Mult(w_d \mid \phi_d)\right]\]
+%\[\times \int_{\phi_0}\int_{\phi_1}\cdots \int_{\phi_k} P(\theta, s, z, \phi, W \mid \alpha, \beta, \eta, \sigma)\]
+
+%\[=\left[ \prod_k \Dir(\phi_k \mid \beta) \right] \left[ \prod_d \Dir(\theta_d \mid \alpha) \mathcal{N}(\eta^\top \bar{z}_d, \sigma) \prod_i^{N_d} \Mult(z) \right]\]
+%\[\times \left[  \prod_d \prod_i^{N_d} \Mult(w_{di} \mid \phi_{z_d})\right] \rightarrow \prod_d \prod_w \prod_k \left[ \Mult(w \mid \phi_k)^{N_{dk}}\right]\]
+
+%\[P(\theta, s, z, w \mid \alpha, \beta, \eta, \sigma) = \left[ \prod_k \int_{\phi_k} \Dir(\phi_k \mid \beta) \prod_d \prod_w \left[ \Mult(w \mid \phi_k)^{N_{dk}}\right] \right]\]
+
+%\[ = \left[ \prod_d \Dir(\theta_d \mid \alpha) \mathcal{N}(s_d \mid \eta^\top \bar{z}_d, \sigma) \prod_i^N \Mult(z_{di} \mid \theta_d) \right] \left[ \prod_k \frac{\Gamma(\beta) \Gamma(W\beta)}{\Gamma(N_k + W\beta)} \prod_w \frac{\Gamma(N_{kw}+\beta)}{\Gamma(\beta)}\right]\]
+
+The final collapsed SLDA will only give probabilities for \(S, Z\) and \(W\). 
+To achieve this, we will first integrate out the latent variable $\Phi$. The first thing that can be noticed is that every $\varphi_k$ is independently sampled, and thus can be integrated separately:
+\begin{equation}
+P(\Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma) = \int_{\phi_0}\int_{\phi_1}\cdots \int_{\phi_K} P(\Phi, \Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma)
+\end{equation}
+At this point we need to rewrite part of Equation~\ref{eq:prodpart} in order to be able to continue the derivation:
+\begin{equation}
+\prod_{d = 1}^D \prod_{i = 1}^{N_d} \Mult(w_{di} \mid \phi_{z_{di}}) = \prod_{d = 1}^D \prod_{w = 1}^W \prod_{k = 1}^K \Mult(w \mid \phi_k)^{N_{dk}},
+\end{equation}
+where $N_d$ represents the total number of words within document $d$, and $N_{dk}$ represents the number of words within document $d$ assigned to topic $k$.
+\begin{equation}
+\begin{gathered}
+P(\Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma) = \left[ \prod_{k = 1}^K \int_{\phi_k} \Dir(\phi_k \mid \beta) \prod_{d = 1}^D \prod_{w = 1}^W \Mult(w \mid \phi_k)^{N_{dk}} \right]  \\
+\times\left[ \prod_{d = 1}^D \Dir(\theta_d \mid \alpha) \mathcal{N}(s_d \mid \eta^\top \bar{z}_d, \sigma) \prod_{i = 1}^{N_d} \Mult(z_{d, i} \mid \theta_d) \right]
+\end{gathered}
+\end{equation}
+We can now make use of the definition of the Dirichlet-Multinomial distribution in order to solve all the integrals:
+\begin{equation}
+\begin{gathered}
+P(\Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma) = \left[ \prod_{k = 1}^K \frac{ \Gamma(W\beta)}{\Gamma(N_k + W\beta)} \prod_{w = 1}^W \frac{\Gamma(N_{kw}+\beta)}{\Gamma(\beta)}\right]\\
+\times\left[ \prod_{d = 1}^D \Dir(\theta_d \mid \alpha) \mathcal{N}(s_d \mid \eta^\top \bar{z}_d, \sigma) \prod_{i = 1}^{N_d} \Mult(z_{di} \mid \theta_d) \right]
+\end{gathered}
+\end{equation}
+We can proceed in an analogous fashion in order to integrate out the latent $\Theta$ parameter:
+\begin{equation}
+P(S, Z, W \mid \alpha, \beta, \eta, \sigma) = \int_{\theta_0}\int_{\theta_1}\dots \int_{\theta_D} p(\Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma)
+\end{equation}
+This gives us:
+\begin{equation}
+\begin{gathered}
+P(S, Z, W \mid \alpha, \beta, \eta, \sigma) =  \left[ \prod_{k = 1}^K \frac{ \Gamma(W\beta)}{\Gamma(N_k + W\beta)} \prod_{w = 1}^W \frac{\Gamma(N_{kw}+\beta)}{\Gamma(\beta)}\right]  \\
+\times\left[ \prod_{d = 1}^D \mathcal{N}(s_d \mid \eta^\top \bar{z}_d, \sigma) \frac{\Gamma(K\alpha)}{\Gamma(N_d + K \alpha)} \prod_{k = 1}^K \frac{\Gamma(N_{dk} + \alpha)}{\Gamma(\alpha)} \right]
+\end{gathered}
+\end{equation}
+Note that $\Gamma(\beta)$ and $\Gamma(\alpha)$ are constant in these products, so they can be moved outside of the product.
+\begin{equation}
+\begin{gathered}
+P(S, Z, W \mid \alpha, \beta, \eta, \sigma) = \left[ \prod_{k = 1}^K \frac{ \Gamma(W\beta)}{\Gamma(\beta)^W \Gamma(N_k + W\beta)} \prod_{w = 1}^W \Gamma(N_{kw}+\beta)\right]\\
+\times\left[ \prod_{d = 1}^D \mathcal{N}(s_d \mid \eta^\top \bar{z}_d, \sigma) \frac{\Gamma(K\alpha)}{\Gamma(\alpha)^K \Gamma(N_d + K \alpha)} \prod_{k = 1}^K \Gamma(N_{dk} + \alpha) \right]
+\end{gathered}
+\end{equation}
+
+\subsubsection{Collapsed Gibbs Sampler}
+
+Using Bayes' theorem, we know that:
+
+\begin{equation}
+P(Z \mid S, W, \dots) = \frac{P(S, W \mid Z, \dots) P(Z \mid \dots)}{P(S, W \mid \dots)} \propto P(S, W, Z \mid \dots),
+\end{equation}
+where we did not write all model hyperparameters for the sake of clarity.
+Thus, in order to implement a Gibbs sampler for this model, we have that:
+\[P(z_{di} = k \mid Z^{\backslash{i}}, S, W, \alpha, \beta, \eta, \sigma) \propto P(z_{di} = k, Z^{\backslash{i}}, S, W, \alpha, \beta, \eta, \sigma) = \]
+More formulas still need to be written here... % TODO...
+
+We can further simplify the previous expression by removing those factors that are constant across all possible values for $k$, resulting in the following final collapsed Gibbs sampler:
+\begin{equation}
+\begin{gathered}
+P(z_{di} = k \mid Z^{\backslash{i}}, S, W, \dots) \propto \left[ \prod_{k'} \frac{\prod_w \Gamma(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta)}{\Gamma(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta)} \right]  \\
+\times \mathcal{N}\left(s_d\, \left| \vphantom{\frac{1}{1}} \right. \, \eta^T \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}, \sigma \right) \prod_{k'} \Gamma(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha),
+\end{gathered}
+\end{equation}
+where we used $ \frac{N_{dk}}{N_d} \equiv \bar{z_d} $. 
+
+The Gibbs sampler can also be expressed in log-space probabilities, in order to get a more numerically-stable implementation:
+\begin{equation*}
+\begin{gathered}
+\log P(z_{di} = k \mid Z^{\backslash{i}}, S, W, \alpha, \beta, \eta, \sigma)\\
+\begin{aligned}
+&\propto\sum_{k',w} \left[ \log \Gamma(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta) - \log \Gamma(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta) \right]\\
+&-\frac{1}{2 \sigma^2}\left(s_d - \eta^\top \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}\right)^2 + \sum_{k'} \log \Gamma(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha)
+\end{aligned}
+\end{gathered}
+\end{equation*}
+
+\subsubsection{Rewriting the log-gamma function}
+The logarithm of the gamma function can be rewritten as follows \cite{BorosMoll}:
+\begin{equation}
+  \log \Gamma(z) = -\gamma z - \log z + \sum_{j=1}^\infty \left[\frac{z}{j}-\log\left(1+\frac{z}{j}\right)\right],
+\end{equation}
+where $\gamma$ is the Euler-Mascheroni constant. 
+We apply this to $\sum_k \sum_w \log \Gamma(N_{kw} + \beta)$, which then becomes:
+\begin{align*}
+&=\sum_{k, w} -\gamma (N_{kw} + \beta) -\log (N_{kw} + \beta) + \sum_{j=1}^\infty \frac{N_{kw} +\beta}{j}-\log\left(1 + \frac{N_{kw} + \beta}{j}\right)\\
+&=-\gamma (N + KW\beta) - \sum_{k,w} \log (N_{kw}+\beta) - \sum_{j=1}^\infty  \frac{N_{kw} + \beta}{j} - \log\left(\frac{N_{kw} + \beta+j}{j}\right)\\
+\intertext{
+Note that the term \(-\gamma (N + KW\beta)\) serves as a normalisation constant for this dataset.
+Since we do not need the exact probabilities but only the proportional probabilities during the algorithms execution, we can discard those terms.
+}
+&\Rightarrow - \sum_{k,w} \log (N_{kw}+\beta) - \sum_{j=1}^\infty  \frac{N_{kw} + \beta}{j} - \log\left(\frac{N_{kw} + \beta+j}{j}\right)\\
+&=-\sum_{k,w} \log (N_{kw}+\beta) - \sum_{j=1}^\infty  \frac{N_{kw} + \beta}{j} - \log(N_{kw} + \beta+j) + \log(j)\\
+&=-\sum_{k,w} \log (N_{kw}+\beta) - \sum_{j=1}^\infty \left( \frac{N_{kw} + \beta}{j} +\log(j)\right) + \sum_{j=1}^\infty \log(N_{kw} + \beta + j)\\
+&=\sum_{j=1}^\infty \left( \frac{N + KW\beta}{j} +KW\log(j)\right) - \sum_{k,w} \log (N_{kw}+\beta) + \sum_{j=1}^\infty \log(N_{kw} + \beta + j)\\
+&=\sum_{j=1}^\infty \left( \frac{N + KW\beta}{j} +KW\log(j)\right) - \sum_{k,w} \sum_{j=0}^\infty \log(N_{kw} + \beta + j)
+\end{align*}
+
+Again, the term \(\sum_{j=1}^\infty  \frac{N + KW\beta}{j} +KW\log(j)\) is a constant for this dataset, so we can discard it.
+This results in the following proportionality:
+\begin{align}
+  \sum_{k,w} \log \Gamma(N_{kw} + \beta) &\propto  -\sum_{k,w}\sum_{j=0}^\infty \log (N_{kw} + \beta + j)
+\intertext{Using similar steps, we can also simplify}
+  \sum_k \log\Gamma (N_k + W\beta) &\propto -\sum_k \sum_{j=0}^\infty \log(N_k + W\beta + j)\\
+  \sum_{k,d} \log \Gamma(N_{dk} + \alpha) &\propto -\sum_{k,d} \sum_{j=0}^\infty \log(N_{dk}+\alpha +j)\\
+  \sum_d \log \Gamma (N_d + K\alpha) &\propto -\sum_d \sum_{j=0}^\infty \log(N_d + K\alpha + j)
+\end{align}
+
+Putting these together gives us the following proportionality:
+\begin{equation*}
+\begin{gathered}
+\log P(z_{di} = k \mid Z^{\backslash{i}}, S, W, \alpha, \beta, \eta, \sigma) \\
+\begin{aligned}
+&\propto \sum_{j=0}^\infty \sum_{k'}\log(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta + j) -\log(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha +j)\\
+&-\sum_{j=0}^\infty \sum_{k',w} \log(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta + j) -\frac{1}{2 \sigma^2}\left(s_d - \eta^\top \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}\right)^2
+\end{aligned}
+\end{gathered}
+\end{equation*}
+
+In practice, however, we can not calculate the infinite terms of the above sums, and thus we would stop the approximation at some arbitrary iteration $J$:
+
+\[ \log P(z_{di} = k \mid Z^{\backslash{i}}, S, W, \alpha, \beta, \eta, \sigma) \]
+\[ \propto -\frac{1}{2 \sigma^2}\left(s_d - \eta^\top \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}\right)^2 + \sum_{k'} \sum_{j=0}^J \log(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta + j) \]
+\[ -\log(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha +j) + \sum_{w} \log(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta + j) \]
+
+\subsubsection{Estimating response parameters}
+The maximum a posteriori (MAP) estimate for the hyperparameter \(\eta\)  can be inferred from the gradient of the complete model likelihood:
+\begin{equation}
+\nabla_{\eta_k} \log P(S, Z, W \mid \alpha, \beta, \eta, \sigma) = \sum_d \frac{1}{\sigma^2} \frac{N_{dk}}{N_d} \left( s_d - \eta^T \frac{N_{d\cdot}}{N_d}\right)
+\end{equation}
+\[= \sum_d \frac{s_d \frac{N_{dk}}{N_d} }{\sigma^2} - \sum_d \frac{ \frac{N_{dk}}{N_d} \left( \eta^T \frac{N_{d\cdot}}{N_d} \right) }{\sigma^2}\]
+
+For the MAP estimate, the gradient should be zero.
+This allows us to rewrite the above formula into:
+\begin{align*}
+\sum_d s_d \frac{N_{dk}}{N_d} &= \sum_d \frac{N_{dk}}{N_d} \left( \sum_{k'} \eta_{k'} \frac{N_{dk'}}{N_d} \right)\\
+\sum_d s_d \frac{N_{dk}}{N_d} &= \sum_d \frac{N_{dk}}{N_d} \left( \eta_k \frac{N_{dk}}{N_d} + \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right) \\
+\sum_d s_d \frac{N_{dk}}{N_d} &= \eta_k \sum_d \left( \frac{N_{dk}}{N_d}  \right)^2 + \sum_d \left( \frac{N_{dk}}{N_d} \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right) \\
+\intertext{Further rewriting finally gives us the MAP estimate for \(\eta\):}
+\eta_k \sum_d \left( \frac{N_{dk}}{N_d}  \right)^2  &=\sum_d \left( s_d \frac{N_{dk}}{N_d} - \frac{N_{dk}}{N_d} \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right)\\
+\eta_k \sum_d \left( \frac{N_{dk}}{N_d}  \right)^2 &=  \sum_d \frac{N_{dk}}{N_d} \left( s_d - \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right)\\
+\eta_k &= \frac{\sum_d \frac{N_{dk}}{N_d} \left( s_d - \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right)}{\sum_d \left( \frac{N_{dk}}{N_d}  \right)^2} \numberthis \label{eq:etaupdate}
+\end{align*}
+From our experiments, we noticed that trying to apply the formula as described in Equation~\ref{eq:etaupdate} as an update rule for \(\eta\) does not converge.
+Instead, the following update can be used:
+\begin{equation}
+\eta_k^{new} \leftarrow (1 - \gamma) \eta_k^{old} + \gamma \frac{\sum_d \frac{N_{dk}}{N_d} \left( s_d - \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right)}{\sum_d \left( \frac{N_{dk}}{N_d}  \right)^2 + \epsilon},
+\end{equation}
+where we used $1 \gg \gamma > 0$ in order for the previous series to converge and $1 \gg \epsilon > 0$ as a smoothing constant.
+
+\section{Experiments}
+\label{sec:experiments}
+%• Any details about experiments (dataset sizes, parameter selection, etc)
+%• Results
+%• Analysis (discussion of results / visualization / findings / etc)
+
+For our experiments we chose to use two different performance measures: perplexity and inverse accuracy.
+
+\subsection{Perplexity}
+
+The perplexity measure is commonly used within LDA literature, and we include it for reference purposes. 
+It is defined as follows:
+\begin{equation}
+\text{Perplexity} \equiv \exp \left\{ -\frac{1}{N} \sum_{i = 1}^N \log P(x_i)  \right\},
+\end{equation}
+where \(P(x_i)\) represents the probability the model gives for the $i$-th item within the test set. The lower the perplexity, the less ``surprised'' the model is of seeing its input, which indicates a better model.
+
+This measure has a shortcoming, though. 
+It is enough for the model to give a probability of zero to a word to drive this performance measure to infinity. 
+This does not mean, however, that the model is infinitely bad, since the rest of the items might still have large probabilities.
+To overcome this problem, we also measure the performance in terms of the average inverse accuracy of the model.
+
+\subsection{Inverse accuracy}
+
+The average inverse accuracy of the model is defined as follows:
+\begin{equation}
+\text{Accuracy}^{-1} \equiv \frac{1}{\frac{1}{N}\sum_{i = 1}^N P(x_i)}
+\end{equation}
+This measure should be interpreted as the number of words the model incorrectly predicts for each correctly predicted word. 
+The lower this magnitude, the better the model.
+
+\subsection{Results}
+
+We created a first experiment in order to check the validity of our approximation for the Gibbs sampler of our model. 
+We selected different values for $J$ and compared the predictive performance for each case. 
+We ran three different MCMC chains and then averaged the results. 
+Within each execution, 100 movies were randomly selected as the training set, and 20 as the testing set. 
+We used 5 samples, taken every 4 steps of the Gibbs sampler, with the first 20 iterations discarded as the burn-in period. 
+Our findings are summarized in Table~\ref{table:J}:
+
+\begin{table}[ht!]
+\caption{Experiment results for varying values of $J$ with 100/20 movies as training/test set.}
+\label{table:J}
 \begin{center}
-\begin{tabular}{ll}
-\multicolumn{1}{c}{\bf PART}  &\multicolumn{1}{c}{\bf DESCRIPTION}
-\\ \hline \\
-Dendrite         &Input terminal \\
-Axon             &Output terminal \\
-Soma             &Cell body (contains cell nucleus) \\
+\begin{tabular}{r|cccccc}
+J               & 1 & 2 & 3 & 4 & 5 & 6 \\ \hline
+Perplexity      & 4100 & 4125 & 4082 & 4251 & 3754 & 3881 \\
+Accuracy$^{-1}$ & 858 & 871 & 823 & 863 & 877 & 815 \\
 \end{tabular}
 \end{center}
 \end{table}
 
-\section{Final instructions}
-Do not change any aspects of the formatting parameters in the style files.
-In particular, do not modify the width or length of the rectangle the text
-should fit into, and do not change font sizes (except perhaps in the
-\textbf{References} section; see below). Please note that pages should be
-numbered.
+We can observe that the predictive performance tends to improve with larger values of $J$. 
+This is to be expected, since the higher $J$ is, the better the approximation of the log-gamma function becomes.
+This improvement is not, however, very consistent even when averaging across 3 chains, and thus we theorize that the extra computational time spent on making $J$ higher is better used if $J$ is kept as low as possible and more movies and/or iterations are used instead.
+We then conclude this approximation is interesting, at least from a computational perspective.
 
-\section{Preparing PostScript or PDF files}
+We devised a second experiment in order to find out good values for the number of topics to use in our models.
+Again we did an equivalent set up to the one for the previous experiment, but this time changing the number of topics and whether or not the Gibbs sampler uses the movie score information.
 
-Please prepare PostScript or PDF files with paper size ``US Letter'', and
-not, for example, ``A4''. The -t
-letter option on dvips will produce US Letter files.
+\begin{table}[ht!]
+\captionsetup{justification=centering}
+\caption{Experiment results for varying values of $K$,\\ with $J=1$ and 100/20 movies as training/test set.} 
+\label{tab:K}
+\begin{center}
+\begin{tabular}{c|cc|ccc}
 
-Fonts were the main cause of problems in the past years. Your PDF file must
-only contain Type 1 or Embedded TrueType fonts. Here are a few instructions
-to achieve this.
+Metric &	LDA topics      & & 25 & 50 & 100 \\ \hline
+\multirow{2}{*}{Perplexity} &	\multirow{2}{*}{Using scores?} & No  & 4128 & 5333 & 6954 \\
+			  &             & Yes & \textbf{4005} & 5503 & 7082 \\ \hline
+\multirow{2}{*}{Accuracy$^{-1}$} & \multirow{2}{*}{Using scores?} & No  & 845 & 1318 & 2049 \\
+			      &          & Yes & \textbf{805} & 1372 & 2067 \\
+\end{tabular}
+\end{center}
+\end{table}
 
-\begin{itemize}
+We can see how all models start overfitting with, at least, more than 25 topics.
+This is most likely due to the fact that we only used 100 movie plot summaries for training, which is a rather small dataset. 
+We also observe that, for 25 topics, not only the best predictive performance is achieved, but this is further improved by using the movie scores.
+This improvement is very small, but we could systematically observe it in all the tests we run for this work. 
 
-\item You can check which fonts a PDF files uses.  In Acrobat Reader,
-select the menu Files$>$Document Properties$>$Fonts and select Show All Fonts. You can
-also use the program \verb+pdffonts+ which comes with \verb+xpdf+ and is
-available out-of-the-box on most Linux machines.
 
-\item The IEEE has recommendations for generating PDF files whose fonts
-are also acceptable for NIPS. Please see
-\url{http://www.emfield.org/icuwb2010/downloads/IEEE-PDF-SpecV32.pdf}
+\section{Discussion}
+\label{sec:discussion}
+%• Refer to the research questions you defined in your introduction.
+%• Any related work you are aware of?
+%• Challenges you observed?
+%• “Future work” (you do not need to do this work really J, but what would you change in the model / what experiments you would run / etc, if you would have a chance to do this? What other people should look into?
+%• Any thoughts / observation / wider implications
 
-\item LaTeX users:
-
-\begin{itemize}
-
-\item Consider directly generating PDF files using \verb+pdflatex+
-(especially if you are a MiKTeX user). 
-PDF figures must be substituted for EPS figures, however.
-
-\item Otherwise, please generate your PostScript and PDF files with the following commands:
-\begin{verbatim} 
-dvips mypaper.dvi -t letter -Ppdf -G0 -o mypaper.ps
-ps2pdf mypaper.ps mypaper.pdf
-\end{verbatim}
-
-Check that the PDF files only contains Type 1 fonts. 
-%For the final version, please send us both the Postscript file and
-%the PDF file. 
-
-\item xfig "patterned" shapes are implemented with 
-bitmap fonts.  Use "solid" shapes instead. 
-\item The \verb+\bbold+ package almost always uses bitmap
-fonts.  You can try the equivalent AMS Fonts with command
-\begin{verbatim}
-\usepackage[psamsfonts]{amssymb}
-\end{verbatim}
- or use the following workaround for reals, natural and complex: 
-\begin{verbatim}
-\newcommand{\RR}{I\!\!R} %real numbers
-\newcommand{\Nat}{I\!\!N} %natural numbers 
-\newcommand{\CC}{I\!\!\!\!C} %complex numbers
-\end{verbatim}
-
-\item Sometimes the problematic fonts are used in figures
-included in LaTeX files. The ghostscript program \verb+eps2eps+ is the simplest
-way to clean such figures. For black and white figures, slightly better
-results can be achieved with program \verb+potrace+.
-\end{itemize}
-\item MSWord and Windows users (via PDF file):
-\begin{itemize}
-\item Install the Microsoft Save as PDF Office 2007 Add-in from
-\url{http://www.microsoft.com/downloads/details.aspx?displaylang=en\&familyid=4d951911-3e7e-4ae6-b059-a2e79ed87041}
-\item Select ``Save or Publish to PDF'' from the Office or File menu
-\end{itemize}
-\item MSWord and Mac OS X users (via PDF file):
-\begin{itemize}
-\item From the print menu, click the PDF drop-down box, and select ``Save
-as PDF...''
-\end{itemize}
-\item MSWord and Windows users (via PS file):
-\begin{itemize}
-\item To create a new printer
-on your computer, install the AdobePS printer driver and the Adobe Distiller PPD file from
-\url{http://www.adobe.com/support/downloads/detail.jsp?ftpID=204} {\it Note:} You must reboot your PC after installing the
-AdobePS driver for it to take effect.
-\item To produce the ps file, select ``Print'' from the MS app, choose
-the installed AdobePS printer, click on ``Properties'', click on ``Advanced.''
-\item Set ``TrueType Font'' to be ``Download as Softfont''
-\item Open the ``PostScript Options'' folder
-\item Select ``PostScript Output Option'' to be ``Optimize for Portability''
-\item Select ``TrueType Font Download Option'' to be ``Outline''
-\item Select ``Send PostScript Error Handler'' to be ``No''
-\item Click ``OK'' three times, print your file.
-\item Now, use Adobe Acrobat Distiller or ps2pdf to create a PDF file from
-the PS file. In Acrobat, check the option ``Embed all fonts'' if
-applicable.
-\end{itemize}
-
-\end{itemize}
-If your file contains Type 3 fonts or non embedded TrueType fonts, we will
-ask you to fix it. 
-
-\subsection{Margins in LaTeX}
- 
-Most of the margin problems come from figures positioned by hand using
-\verb+\special+ or other commands. We suggest using the command
-\verb+\includegraphics+
-from the graphicx package. Always specify the figure width as a multiple of
-the line width as in the example below using .eps graphics
-\begin{verbatim}
-   \usepackage[dvips]{graphicx} ... 
-   \includegraphics[width=0.8\linewidth]{myfile.eps} 
-\end{verbatim}
-or % Apr 2009 addition
-\begin{verbatim}
-   \usepackage[pdftex]{graphicx} ... 
-   \includegraphics[width=0.8\linewidth]{myfile.pdf} 
-\end{verbatim}
-for .pdf graphics. 
-See section 4.4 in the graphics bundle documentation (\url{http://www.ctan.org/tex-archive/macros/latex/required/graphics/grfguide.ps}) 
- 
-A number of width problems arise when LaTeX cannot properly hyphenate a
-line. Please give LaTeX hyphenation hints using the \verb+\-+ command.
-
+Discussion
 
 \subsubsection*{Acknowledgments}
+%Use unnumbered third level headings for the acknowledgments. 
+%All acknowledgments go at the end of the paper.
+%Do not include acknowledgments in the anonymized submission, only in the final paper. 
 
-Use unnumbered third level headings for the acknowledgments. All
-acknowledgments go at the end of the paper. Do not include 
-acknowledgments in the anonymized submission, only in the 
-final paper. 
+Acknowledgments
 
-\subsubsection*{References}
+\vspace*{-3\baselineskip}
+\renewcommand{\refname}{\subsubsection*{References}} % Using "References" as the title of the bibliography section
+% \vspace*{-1em}
+\begin{thebibliography}{9}
+\bibitem{SLDA}
+  David M. Blei, Jon D. McAuliffe;
+  \emph{Supervised Topic Models};
+  Neural Information Processing Systems 21 (2007)
+  
+\bibitem{IMDb}
+  IMDb.com, Inc.; 
+  \emph{IMDb, the world's most popular and authorative source for movie, TV and celebrity content};
+  \url{www.imdb.com}
+  
+\bibitem{IMSDb}
+  IMSDB.com; 
+  \emph{Internet Movie Script Database - Movie scripts free for reading and downloading};
+  \url{www.imdsb.com}
+  
+\bibitem{lingua}
+  Jim Richardson, Benjamin Franz;
+  \emph{Lingua Stem};
+  Freerun Technologies, Inc; (1999);
+  \url{http://search.cpan.org/~snowhare/Lingua-Stem-0.84/lib/Lingua/Stem.pod}
 
-References follow the acknowledgments. Use unnumbered third level heading for
-the references. Any choice of citation style is acceptable as long as you are
-consistent. It is permissible to reduce the font size to `small' (9-point) 
-when listing the references. {\bf Remember that this year you can use
-a ninth page as long as it contains \emph{only} cited references.}
+\bibitem{BorosMoll}
+  Geogre Boros, Victor H. Moll,
+  \emph{Irresistible Integrals: symbolics, analysis and experiments in the evaluation of integrals};
+  Cambridge University Press (2004)
 
-\small{
-[1] Alexander, J.A. \& Mozer, M.C. (1995) Template-based algorithms
-for connectionist rule extraction. In G. Tesauro, D. S. Touretzky
-and T.K. Leen (eds.), {\it Advances in Neural Information Processing
-Systems 7}, pp. 609-616. Cambridge, MA: MIT Press.
-
-[2] Bower, J.M. \& Beeman, D. (1995) {\it The Book of GENESIS: Exploring
-Realistic Neural Models with the GEneral NEural SImulation System.}
-New York: TELOS/Springer-Verlag.
-
-[3] Hasselmo, M.E., Schnell, E. \& Barkai, E. (1995) Dynamics of learning
-and recall at excitatory recurrent synapses and cholinergic modulation
-in rat hippocampal region CA3. {\it Journal of Neuroscience}
-{\bf 15}(7):5249-5262.
-}
+\end{thebibliography}
 
 \end{document}
