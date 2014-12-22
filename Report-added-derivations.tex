@@ -238,8 +238,16 @@ Putting these together gives us the following proportionality:
 -\log(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha +j)-\]
 \[\sum_{j=0}^\infty \sum_{k',w} \log(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta + j) -\frac{1}{2 \sigma^2}\left(s_d - \eta^\top \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}\right)^2\]
 
+In practice, however, we cannot calculate the infinite terms of the above sums, and thus we would stop the approximation at some arbitrary iteration $J$:
+
+\[ \log p(z_{d, i} = k \mid Z^{\backslash{i}}, S, W, \alpha, \beta, \eta, \sigma) \propto \]
+\[ -\frac{1}{2 \sigma^2}\left(s_d - \eta^\top \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}\right)^2 + \sum_{k'} \sum_{j=0}^J \log(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta + j) 
+\]
+\[ -\log(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha +j) + \sum_{w} \log(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta + j) \]
+
 \subsubsection{Estimating response parameters}
-Maximum a posteriori (MAP) estimate for the $\eta$ hyperparameter:
+
+The maximum a posteriori (MAP) estimate for the $\eta$ hyperparameter can be inferred from the gradient of the complete model likelihood:
 
 $$ \nabla_{\eta_k} \log p(S, Z, W \mid \alpha, \beta, \eta, \sigma) = \sum_d \frac{ \frac{N_{dk}}{N_d} \left( s_d - \eta^T \frac{N_{d\cdot}}{N_d}\right) }{\sigma^2} = $$
 $$ = \sum_d \frac{s_d \frac{N_{dk}}{N_d} }{\sigma^2} - \sum_d \frac{ \frac{N_{dk}}{N_d} \left( \eta^T \frac{N_{d\cdot}}{N_d} \right) }{\sigma^2} = 0 $$
@@ -254,29 +262,6 @@ Trying to apply the previous formula as an update rule for $\eta$ does not conve
 $$ \eta_k^{new} \leftarrow (1 - \gamma) \eta_k^{old} + \gamma \frac{\sum_d \frac{N_{dk}}{N_d} \left( s_d - \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right)}{\sum_d \left( \frac{N_{dk}}{N_d}  \right)^2 + \epsilon}$$
 
 With $1 \gg \gamma > 0$ in order for the previous series to converge and $1 \gg \epsilon > 0$ is a smoothing constant.
-
-\subsubsection{Gibbs Sampler}
-Gibbs sampler:
-
-$$ P(z_{di} = k \mid Z^{\backslash i}, S, W, \alpha, \beta, \eta, \sigma) \propto P(z_{di} = k, Z_{-i}, S, W, \alpha, \beta, \eta, \sigma) $$
-$$ \propto \left[ \prod_{k'} \frac{\prod_w \Gamma(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta)}{\Gamma(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta)} \right] \times $$
-$$ \mathcal{N}\left(s_d\, \left|\, \eta^\top\frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}, \sigma\right. \right) \prod_{k'} \Gamma(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha) $$
-
-Or in log-space:
-\begin{align*}
-&\propto \sum_{k',w} \log \Gamma(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta) - \log \Gamma(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta)\\
-&\hspace{10pt}-\frac{1}{2 \sigma^2}\left(s_d - \eta^\top \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}\right)^2 + \sum_{k'} \log \Gamma(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha)
-\end{align*}
-  
-
-
-We rewrite the log gamma terms again to get:
-\[\propto \sum_{j=0}^\infty \sum_{k'}\log(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta + j) 
--\log(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha +j)-\]
-\[\sum_{j=0}^\infty \sum_{k',w} \log(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta + j) -\frac{1}{2 \sigma^2}\left(s_d - \eta^\top \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}\right)^2\]
-
-\[\left(s_d - \eta^\top \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}\right)^2 \rightarrow \left(s_d - \eta^\top \frac{\sum_k N_{d{k'}}e_k  + \mathbb{I}(k' = k)}{N_d}\right)^2\]
-
 
 \section{Experiments}
 %• Any details about experiments (dataset sizes, parameter selection, etc)
