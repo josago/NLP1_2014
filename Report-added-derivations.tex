@@ -22,6 +22,7 @@ Francesco Stablum
 \renewcommand{\phi}{\varphi}
 \renewcommand{\epsilon}{\varepsilon}
 \newcommand{\eps}{\epsilon}
+\newcommand{\numberthis}{\addtocounter{equation}{1}\tag{\theequation}}
 
 \begin{document}
 \maketitle
@@ -39,9 +40,15 @@ In this report we use those same techniques, but apply them to plot summaries of
 Using these corpus of text we try to determine whether the contents of these summaries and the score these movies are rated with on the popular online movie database IMDb \cite{IMDb} are correlated.
 We do this by comparing the performance on two latent Dirichlet allocation models -- one with and another without using the scores.
 
+First we describe the characteristics of the problem and take a closer look at the data set in Section~\ref{sec:problem}.
+Next, we outline the model and Gibbs sampler in Section~\ref{sec:approach}.
+We describe which experiments we ran in Section~\ref{sec:experiments} along with their results.
+Finally, we provide our final remarks in Section~\ref{sec:discussion}.
+
 This project is part of the Natural Language Processing course of the UvA from Fall 2014.
 
 \section{Problem}
+\label{sec:problem}
 %• Explain the problem; what kind of assumptions / observations you have about the problem
 In this section we describe the characteristics of the problem and take a closer look at the data set that we use.
 
@@ -72,6 +79,7 @@ It is from the movie Big Fish (2003) and is written by a user who wanted to rema
 \end{quotation}
 
 \section{Approach}
+\label{sec:approach}
 %• Explain the model; if any important assumptions are made at this stage, explain why they are reasonable or necessary
 %• Explain learning / inference algorithms
 %• Explaining (perhaps briefly) any necessary preprocessing / postprocesing / data acquisition stages (maybe earlier, depending on the project; may also move to the experimental section)
@@ -124,32 +132,37 @@ Note that we use a symmetric $\alpha$ and $\beta$, i.e. $\alpha=(\alpha_1, \alph
 \end{figure}
 
 \subsubsection{Collapsed Supervised Latent Dirichlet Allocation}
+In this section we will give the derivations for the collapsed supervised LDA model.
 
 We start by recalling the full likelihood expression (i.e. for all variables, both latent and visible) of the model:
-
-\[P(\Phi, \Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma) = \left[ \prod_{k = 1}^K \Dir(\phi_k \mid \beta) \right]  \]
 \begin{equation}
 \label{eq:prodpart}
+\begin{gathered}
+P(\Phi, \Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma) = \left[ \prod_{k = 1}^K \Dir(\phi_k \mid \beta) \right]  \\
 \times \left[ \prod_{d = 1}^D \Dir(\theta_d \mid \alpha) \mathcal{N}(s_d \mid \eta^\top \bar{z}_d, \sigma) \prod_{i = 1}^{N_d} \Mult(z_{di} \mid \theta_d) \Mult(w_{di} \mid \varphi_{z_{di}}) \right]
+\end{gathered}
 \end{equation}
-\[\times \left[ \prod_{d} \Dir(\theta_d \mid \alpha) \prod_d \Mult(\phi_d \mid \theta_d )\Mult(w_d \mid \phi_d)\right]\]
-\[\times \int_{\phi_0}\int_{\phi_1}\cdots \int_{\phi_k} P(\theta, s, z, \phi, W \mid \alpha, \beta, \eta, \sigma)\]
-\[=\left[ \prod_k \Dir(\phi_k \mid \beta) \right] \left[ \prod_d \Dir(\theta_d \mid \alpha) \mathcal{N}(\eta^\top \bar{z}_d, \sigma) \prod_i^{N_d} \Mult(z) \right]\]
-\[\times \left[  \prod_d \prod_i^{N_d} \Mult(w_{di} \mid \phi_{z_d})\right] \rightarrow \prod_d \prod_w \prod_k \left[ \Mult(w \mid \phi_k)^{N_{dk}}\right]\]
 
-\[P(\theta, s, z, w \mid \alpha, \beta, \eta, \sigma) = \left[ \prod_k \int_{\phi_k} \Dir(\phi_k \mid \beta) \prod_d \prod_w \left[ \Mult(w \mid \phi_k)^{N_{dk}}\right] \right]\]
-\[ = \left[ \prod_d \Dir(\theta_d \mid \alpha) \mathcal{N}(s_d \mid \eta^\top \bar{z}_d, \sigma) \prod_i^N \Mult(z_{di} \mid \theta_d) \right]\]
-\[\times \left[ \prod_k \frac{\Gamma(\beta) \Gamma(W\beta)}{\Gamma(N_k + W\beta)} \prod_w \frac{\Gamma(N_{kw}+\beta)}{\Gamma(\beta)}\right]\]
+%\[= \left[ \prod_{d} \Dir(\theta_d \mid \alpha) \prod_d \Mult(\phi_d \mid \theta_d )\Mult(w_d \mid \phi_d)\right]\]
+%\[\times \int_{\phi_0}\int_{\phi_1}\cdots \int_{\phi_k} P(\theta, s, z, \phi, W \mid \alpha, \beta, \eta, \sigma)\]
 
-We will first integrate out the latent variable $\Phi$. The first thing that can be noticed is that every $\varphi_k$ is independently sampled, and thus can be integrated separately:
+%\[=\left[ \prod_k \Dir(\phi_k \mid \beta) \right] \left[ \prod_d \Dir(\theta_d \mid \alpha) \mathcal{N}(\eta^\top \bar{z}_d, \sigma) \prod_i^{N_d} \Mult(z) \right]\]
+%\[\times \left[  \prod_d \prod_i^{N_d} \Mult(w_{di} \mid \phi_{z_d})\right] \rightarrow \prod_d \prod_w \prod_k \left[ \Mult(w \mid \phi_k)^{N_{dk}}\right]\]
+
+%\[P(\theta, s, z, w \mid \alpha, \beta, \eta, \sigma) = \left[ \prod_k \int_{\phi_k} \Dir(\phi_k \mid \beta) \prod_d \prod_w \left[ \Mult(w \mid \phi_k)^{N_{dk}}\right] \right]\]
+
+%\[ = \left[ \prod_d \Dir(\theta_d \mid \alpha) \mathcal{N}(s_d \mid \eta^\top \bar{z}_d, \sigma) \prod_i^N \Mult(z_{di} \mid \theta_d) \right] \left[ \prod_k \frac{\Gamma(\beta) \Gamma(W\beta)}{\Gamma(N_k + W\beta)} \prod_w \frac{\Gamma(N_{kw}+\beta)}{\Gamma(\beta)}\right]\]
+
+The final collapsed SLDA will only give probabilities for \(S, Z\) and \(W\). 
+To achieve this, we will first integrate out the latent variable $\Phi$. The first thing that can be noticed is that every $\varphi_k$ is independently sampled, and thus can be integrated separately:
 \begin{equation}
 P(\Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma) = \int_{\phi_0}\int_{\phi_1}\cdots \int_{\phi_K} P(\Phi, \Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma)
 \end{equation}
 At this point we need to rewrite part of Equation~\ref{eq:prodpart} in order to be able to continue the derivation:
 \begin{equation}
-\prod_{d = 1}^D \prod_{i = 1}^{N_d} \Mult(w_{di} \mid \phi_{z_{di}}) = \prod_{d = 1}^D \prod_{w = 1}^W \prod_{k = 1}^K \Mult(w \mid \phi_k)^{N_{dk}}
+\prod_{d = 1}^D \prod_{i = 1}^{N_d} \Mult(w_{di} \mid \phi_{z_{di}}) = \prod_{d = 1}^D \prod_{w = 1}^W \prod_{k = 1}^K \Mult(w \mid \phi_k)^{N_{dk}},
 \end{equation}
-Where $N_d$ represents the total number of words within document $d$, and $N_{dk}$ represents the number of words within document $d$ assigned to topic $k$.
+where $N_d$ represents the total number of words within document $d$, and $N_{dk}$ represents the number of words within document $d$ assigned to topic $k$.
 \begin{equation}
 \begin{gathered}
 P(\Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma) = \left[ \prod_{k = 1}^K \int_{\phi_k} \Dir(\phi_k \mid \beta) \prod_{d = 1}^D \prod_{w = 1}^W \Mult(w \mid \phi_k)^{N_{dk}} \right]  \\
@@ -187,37 +200,45 @@ P(S, Z, W \mid \alpha, \beta, \eta, \sigma) = \left[ \prod_{k = 1}^K \frac{ \Gam
 Using Bayes' theorem, we know that:
 
 \begin{equation}
-P(Z \mid S, W, \dots) = \frac{P(S, W \mid Z, \dots) P(Z \mid \dots)}{P(S, W \mid \dots)} \propto P(S, W, Z \mid \dots)
+P(Z \mid S, W, \dots) = \frac{P(S, W \mid Z, \dots) P(Z \mid \dots)}{P(S, W \mid \dots)} \propto P(S, W, Z \mid \dots),
 \end{equation}
-
-Where we did not write all model hyperparameters for the sake of clarity.
+where we did not write all model hyperparameters for the sake of clarity.
 Thus, in order to implement a Gibbs sampler for this model, we have that:
 \[P(z_{di} = k \mid Z^{\backslash{i}}, S, W, \alpha, \beta, \eta, \sigma) \propto P(z_{di} = k, Z^{\backslash{i}}, S, W, \alpha, \beta, \eta, \sigma) = \]
 More formulas still need to be written here... % TODO...
 
 We can further simplify the previous expression by removing those factors that are constant across all possible values for $k$, resulting in the following final collapsed Gibbs sampler:
-\[P(z_{di} = k \mid Z^{\backslash{i}}, S, W, \alpha, \beta, \eta, \sigma) \propto \left[ \prod_{k'} \frac{\prod_w \Gamma(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta)}{\Gamma(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta)} \right] \times \]
+\[P(z_{di} = k \mid Z^{\backslash{i}}, S, W, \dots) \propto \left[ \prod_{k'} \frac{\prod_w \Gamma(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta)}{\Gamma(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta)} \right] \times \]
 \begin{equation}
-\mathcal{N}\left(s_d\, \left|\, \eta^T \cdot \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}, \sigma\right. \right) \prod_{k'} \Gamma(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha)
+\mathcal{N}\left(s_d\, \left| \vphantom{\frac{1}{1}} \right. \, \eta^T \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}, \sigma \right) \prod_{k'} \Gamma(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha),
 \end{equation}
+where we used $ \frac{N_{dk}}{N_d} \equiv \bar{z_d} $. 
 
-Where we used $ \frac{N_{dk}}{N_d} \equiv \bar{z_d} $. 
 The Gibbs sampler can also be expressed in log-space probabilities, in order to get a more numerically-stable implementation:
-\[ \log P(z_{di} = k \mid Z^{\backslash{i}}, S, W, \alpha, \beta, \eta, \sigma)  \]
-\[ \propto\sum_{k',w} \left[ \log \Gamma(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta) - \log \Gamma(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta) \right] \]
-\[ \hspace{10pt}-\frac{1}{2 \sigma^2}\left(s_d - \eta^\top \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}\right)^2 + \sum_{k'} \log \Gamma(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha) \]
+\begin{equation*}
+\begin{gathered}
+\log P(z_{di} = k \mid Z^{\backslash{i}}, S, W, \alpha, \beta, \eta, \sigma)\\
+\begin{aligned}
+&\propto\sum_{k',w} \left[ \log \Gamma(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta) - \log \Gamma(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta) \right]\\
+&-\frac{1}{2 \sigma^2}\left(s_d - \eta^\top \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}\right)^2 + \sum_{k'} \log \Gamma(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha)
+\end{aligned}
+\end{gathered}
+\end{equation*}
 
 \subsubsection{Rewriting the log-gamma function}
 The logarithm of the gamma function can be rewritten as follows \cite{BorosMoll}:
 \begin{equation}
-  \log \Gamma(z) = -\gamma z - \log z + \sum_{j=1}^\infty \left[\frac{z}{j}-\log\left(1+\frac{z}{j}\right)\right]
+  \log \Gamma(z) = -\gamma z - \log z + \sum_{j=1}^\infty \left[\frac{z}{j}-\log\left(1+\frac{z}{j}\right)\right],
 \end{equation}
-where $\gamma$ is the Euler-Mascheroni constant. We apply this to $\sum_k \sum_w \log \Gamma(N_{kw} + \beta)$, which then becomes:
+where $\gamma$ is the Euler-Mascheroni constant. 
+We apply this to $\sum_k \sum_w \log \Gamma(N_{kw} + \beta)$, which then becomes:
 \begin{align*}
 &=\sum_{k, w} -\gamma (N_{kw} + \beta) -\log (N_{kw} + \beta) + \sum_{j=1}^\infty \frac{N_{kw} +\beta}{j}-\log\left(1 + \frac{N_{kw} + \beta}{j}\right)\\
 &=-\gamma (N + KW\beta) - \sum_{k,w} \log (N_{kw}+\beta) - \sum_{j=1}^\infty  \frac{N_{kw} + \beta}{j} - \log\left(\frac{N_{kw} + \beta+j}{j}\right)\\
-\intertext{Note that the term \(-\gamma (N + KW\beta)\) serves as a normalisation constant for this dataset.
-Since we do not need the exact probabilities but only the proportional probabilities during the algorithms execution, we can discard those terms.}
+\intertext{
+Note that the term \(-\gamma (N + KW\beta)\) serves as a normalisation constant for this dataset.
+Since we do not need the exact probabilities but only the proportional probabilities during the algorithms execution, we can discard those terms.
+}
 &\Rightarrow - \sum_{k,w} \log (N_{kw}+\beta) - \sum_{j=1}^\infty  \frac{N_{kw} + \beta}{j} - \log\left(\frac{N_{kw} + \beta+j}{j}\right)\\
 &=-\sum_{k,w} \log (N_{kw}+\beta) - \sum_{j=1}^\infty  \frac{N_{kw} + \beta}{j} - \log(N_{kw} + \beta+j) + \log(j)\\
 &=-\sum_{k,w} \log (N_{kw}+\beta) - \sum_{j=1}^\infty \left( \frac{N_{kw} + \beta}{j} +\log(j)\right) + \sum_{j=1}^\infty \log(N_{kw} + \beta + j)\\
@@ -236,10 +257,15 @@ This results in the following proportionality:
 \end{align}
 
 Putting these together gives us the following proportionality:
-
-\[ \log P(z_{di} = k \mid Z^{\backslash{i}}, S, W, \alpha, \beta, \eta, \sigma)  \]
-\[\propto \sum_{j=0}^\infty \sum_{k'}\log(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta + j) -\log(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha +j)\]
-\[-\sum_{j=0}^\infty \sum_{k',w} \log(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta + j) -\frac{1}{2 \sigma^2}\left(s_d - \eta^\top \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}\right)^2\]
+\begin{equation*}
+\begin{gathered}
+\log P(z_{di} = k \mid Z^{\backslash{i}}, S, W, \alpha, \beta, \eta, \sigma) \\
+\begin{aligned}
+&\propto \sum_{j=0}^\infty \sum_{k'}\log(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta + j) -\log(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha +j)\\
+&-\sum_{j=0}^\infty \sum_{k',w} \log(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta + j) -\frac{1}{2 \sigma^2}\left(s_d - \eta^\top \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}\right)^2
+\end{aligned}
+\end{gathered}
+\end{equation*}
 
 In practice, however, we can not calculate the infinite terms of the above sums, and thus we would stop the approximation at some arbitrary iteration $J$:
 
@@ -249,19 +275,25 @@ In practice, however, we can not calculate the infinite terms of the above sums,
 
 \subsubsection{Estimating response parameters}
 The maximum a posteriori (MAP) estimate for the hyperparameter \(\eta\)  can be inferred from the gradient of the complete model likelihood:
-\[ \nabla_{\eta_k} \log P(S, Z, W \mid \alpha, \beta, \eta, \sigma) = \sum_d \frac{1}{\sigma^2} \frac{N_{dk}}{N_d} \left( s_d - \eta^T \frac{N_{d\cdot}}{N_d}\right)  = \]
-\[ = \sum_d \frac{s_d \frac{N_{dk}}{N_d} }{\sigma^2} - \sum_d \frac{ \frac{N_{dk}}{N_d} \left( \eta^T \frac{N_{d\cdot}}{N_d} \right) }{\sigma^2}\]
+\begin{equation}
+\begin{gathered}
+\nabla_{\eta_k} \log P(S, Z, W \mid \alpha, \beta, \eta, \sigma) = \sum_d \frac{1}{\sigma^2} \frac{N_{dk}}{N_d} \left( s_d - \eta^T \frac{N_{d\cdot}}{N_d}\right) \\
+ = \sum_d \frac{s_d \frac{N_{dk}}{N_d} }{\sigma^2} - \sum_d \frac{ \frac{N_{dk}}{N_d} \left( \eta^T \frac{N_{d\cdot}}{N_d} \right) }{\sigma^2}
+\end{gathered}
+\end{equation}
+
 For the MAP estimate, the gradient should be zero.
 This allows us to rewrite the above formula into:
 \begin{align*}
 \sum_d s_d \frac{N_{dk}}{N_d} &= \sum_d \frac{N_{dk}}{N_d} \left( \sum_{k'} \eta_{k'} \frac{N_{dk'}}{N_d} \right)\\
 \sum_d s_d \frac{N_{dk}}{N_d} &= \sum_d \frac{N_{dk}}{N_d} \left( \eta_k \frac{N_{dk}}{N_d} + \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right) \\
 \sum_d s_d \frac{N_{dk}}{N_d} &= \eta_k \sum_d \left( \frac{N_{dk}}{N_d}  \right)^2 + \sum_d \left( \frac{N_{dk}}{N_d} \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right) \\
-\sum_d \left( s_d \frac{N_{dk}}{N_d} - \frac{N_{dk}}{N_d} \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right) &= \eta_k \sum_d \left( \frac{N_{dk}}{N_d}  \right)^2 \\
-\sum_d \frac{N_{dk}}{N_d} \left( s_d - \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right) &= \eta_k \sum_d \left( \frac{N_{dk}}{N_d}  \right)^2 \\
-\eta_k &= \frac{\sum_d \frac{N_{dk}}{N_d} \left( s_d - \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right)}{\sum_d \left( \frac{N_{dk}}{N_d}  \right)^2} 
+\intertext{Further rewriting finally gives us the MAP estimate for \(\eta\):}
+\eta_k \sum_d \left( \frac{N_{dk}}{N_d}  \right)^2  &=\sum_d \left( s_d \frac{N_{dk}}{N_d} - \frac{N_{dk}}{N_d} \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right)\\
+\eta_k \sum_d \left( \frac{N_{dk}}{N_d}  \right)^2 &=  \sum_d \frac{N_{dk}}{N_d} \left( s_d - \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right)\\
+\eta_k &= \frac{\sum_d \frac{N_{dk}}{N_d} \left( s_d - \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right)}{\sum_d \left( \frac{N_{dk}}{N_d}  \right)^2} \numberthis \label{eq:etaupdate}
 \end{align*}
-From our experiments, we noticed that trying to apply the previous formula as an update rule for \(\eta\) does not converge.
+From our experiments, we noticed that trying to apply the formula as described in Equation~\ref{eq:etaupdate} as an update rule for \(\eta\) does not converge.
 Instead, the following update can be used:
 \begin{equation}
 \eta_k^{new} \leftarrow (1 - \gamma) \eta_k^{old} + \gamma \frac{\sum_d \frac{N_{dk}}{N_d} \left( s_d - \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right)}{\sum_d \left( \frac{N_{dk}}{N_d}  \right)^2 + \epsilon},
@@ -269,6 +301,7 @@ Instead, the following update can be used:
 where we used $1 \gg \gamma > 0$ in order for the previous series to converge and $1 \gg \epsilon > 0$ as a smoothing constant.
 
 \section{Experiments}
+\label{sec:experiments}
 %• Any details about experiments (dataset sizes, parameter selection, etc)
 %• Results
 %• Analysis (discussion of results / visualization / findings / etc)
@@ -283,6 +316,7 @@ It is defined as follows:
 \text{Perplexity} \equiv \exp \left\{ -\frac{1}{N} \sum_{i = 1}^N \log P(x_i)  \right\},
 \end{equation}
 where \(P(x_i)\) represents the probability the model gives for the $i$-th item within the test set. The lower the perplexity, the less ``surprised'' the model is of seeing its input, which indicates a better model.
+
 This measure has a shortcoming, though. 
 It is enough for the model to give a probability of zero to a word to drive this performance measure to infinity. 
 This does not mean, however, that the model is infinitely bad, since the rest of the items might still have large probabilities.
@@ -297,7 +331,7 @@ The average inverse accuracy of the model is defined as follows:
 This measure should be interpreted as the number of words the model incorrectly predicts for each correctly predicted word. 
 The lower this magnitude, the better the model.
 
-\subsection{Experiments}
+\subsection{Results}
 
 We created a first experiment in order to check the validity of our approximation for the Gibbs sampler of our model. 
 We selected different values for $J$ and compared the predictive performance for each case. 
@@ -356,6 +390,7 @@ We also observe that, for 25 topics, not only the best predictive performance is
 This improvement is very small, but we could systematically observe it in all the tests we run for this work. 
 
 \section{Discussion}
+\label{sec:discussion}
 %• Refer to the research questions you defined in your introduction.
 %• Any related work you are aware of?
 %• Challenges you observed?
