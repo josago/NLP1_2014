@@ -35,7 +35,7 @@ Francesco Stablum
 %• What is the research question / goal?
 %• Why is this an important / meaningful / interesting problem to consider?
 %• The very basic idea of the approach and why this is a reasonable approach for this problem?
-In recent years, several successes have been booked for applying semantic analysis on user comments of movies.
+In recent years, several successes have been booked for applying semantic analysis on user comments of movies\cite{MovieRegression, PredictStars}.
 In this report we use those same techniques, but apply them to plot summaries of movies.
 Using these corpus of text we try to determine whether the contents of these summaries and the score these movies are rated with on the popular online movie database IMDb \cite{IMDb} are correlated.
 We do this by comparing the performance on two latent Dirichlet allocation models -- one with and another without using the scores.
@@ -399,20 +399,30 @@ This improvement is very small, but we could systematically observe it in all th
 
 \renewcommand{\refname}{\subsubsection*{References}} % Using "Sources" as the title of the section
 \begin{thebibliography}{9}
+\bibitem{MovieRegression}
+	M. Joshi, D. Das, K. Gimpel, N. A. Smith;
+	\emph{Movie Reviews and Revenues: An Experiment in Text Regression};
+	In Proceedings of NAACL-HLT (2010)
+
+\bibitem{PredictStars}
+	A. T. Scaria, R. M. philip, S. V. Mehta;
+	\emph{Predicting Star Ratings of Movie Review Comments};
+	\url{http://cs229.stanford.edu/proj2011/MehtaPhilipScaria-Predicting\%20Star\%20Ratings\%20from\%20Movie\%20Review\%20Comments.pdf}
+
 \bibitem{SLDA}
-  David M. Blei, Jon D. McAuliffe;
-  \emph{Supervised Topic Models};
-  Neural Information Processing Systems 21 (2007)
+	David M. Blei, Jon D. McAuliffe;
+	\emph{Supervised Topic Models};
+	Neural Information Processing Systems 21 (2007)
   
 \bibitem{IMDb}
-  IMDb.com, Inc.; 
-  \emph{IMDb, the world's most popular and authorative source for movie, TV and celebrity content};
-  \url{www.imdb.com}
+	IMDb.com, Inc.; 
+	\emph{IMDb, the world's most popular and authorative source for movie, TV and celebrity content};
+	\url{www.imdb.com}
 
 \bibitem{BorosMoll}
-  Geogre Boros, Victor H. Moll,
-  \emph{Irresistible Integrals: symbolics, analysis and experiments in the evaluation of integrals};
-  Cambridge University Press (2004)
+	Geogre Boros, Victor H. Moll,
+	\emph{Irresistible Integrals: symbolics, analysis and experiments in the evaluation of integrals};
+	Cambridge University Press (2004)
 
 \end{thebibliography}
 
