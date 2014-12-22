@@ -283,6 +283,65 @@ We rewrite the log gamma terms again to get:
 %• Results
 %• Analysis (discussion of results / visualization / findings / etc)
 
+For our experiments we chose to use two different performance measures. The perplexity measure is commonly used within the Latent Dirichlet Allocation literature, and we included it for reference purposes. It is defined as follows:
+
+\begin{equation}
+	perplexity \equiv \exp \left\{ \frac{- \sum_{i = 1}^N \log p(x_i) }{N} \right\}
+\end{equation}
+
+Where $p(x_i)$ represents the probability the model gives for the $i$-th item within the test set. The lower the perplexity, the less ``surprised'' the model is of seeing its input, and thus better models it. This measure has a shortcoming, though. It is enough for the model to give a probability of zero to a word to drive this performance measure to infinity. This does not mean, however, that the model is infinitely bad, since the rest of the items might still have large probabilities. To overcome this problem, we also measure the performance in terms of the average inverse accuracy of the model:
+
+\begin{equation}
+	accuracy^{-1} \equiv \frac{N}{\sum_{i = 1}^N p(x_i)}
+\end{equation}
+
+This measure should be interpreted as the number of words the model incorrectly predicts for each correctly predicted word. The lower this magnitude, the better the model.
+
+We created a first experiment in order to check the validity of our approximation for the Gibbs sampler of our model. We selected different values for $J$ and compared the predictive performance for each case. We ran three different MCMC chains and then averaged the results. Within each execution, 100 movies were randomly selected as the training set, and 20 as the testing set. We used 5 samples, taken every 4 steps of the Gibbs sampler, with the first 20 iterations discarded as the burn-in period. Our findings are summarized in table \ref{table:J}:
+
+\begin{table}[ht!]
+\label{table:J}
+\begin{center}
+\begin{tabular}{r|cccccc}
+J               & 1 & 2 & 3 & 4 & 5 & 6 \\ \hline
+Perplexity      & 4100 & 4125 & 4082 & 4251 & 3754 & 3881 \\
+Accuracy$^{-1}$ & 858 & 871 & 823 & 863 & 877 & 815 \\
+\end{tabular}
+\end{center}
+
+\caption{Some caption here...}
+\end{table}
+
+We can observe that the predictive performance tends to improve with larger values of $J$, as it should be expected, since the higher $J$ is, the better the approximation becomes. This improvement is not, however, very consistent even when averaging across 3 chains, and thus we theoretize that the extra computational time spent on making $J$ higher is better used if $J$ is kept as low as possible and more movies and/or iterations are used instead. We then conclude this approximation is interesting, at least from a computational perspective.
+
+We devised a second experiment in order to find out good values for the number of topics to use in our models. Again we did an equivalent set up to the one for the previous experiment, but this time changing the number of topics and whether or not the Gibbs sampler uses the movie score information.
+
+\begin{figure}[ht!]
+\label{figure:K}
+	Perplexity measure:
+	
+	\begin{center}
+	\begin{tabular}{cc|ccc}
+		LDA topics      & & 25 & 50 & 100 \\ \hline
+		\multirow{2}{*}{Using scores?} & No  & 4128 & 5333 & 6954 \\
+		                               & Yes & \textbf{4005} & 5503 & 7082 \\
+	\end{tabular}
+	\end{center}
+	
+	Inverse accuracy measure:
+	
+	\begin{center}
+	\begin{tabular}{cc|ccc}
+		LDA topics      & & 25 & 50 & 100 \\ \hline
+		\multirow{2}{*}{Using scores?} & No  & 845 & 1318 & 2049 \\
+		                               & Yes & \textbf{805} & 1372 & 2067 \\
+	\end{tabular}
+	\end{center}
+\caption{Some caption here...}
+\end{figure}
+
+We can see how all models start overfitting with, at least, more than 25 topics. This is most likely due to the fact that we only used 100 movie plot summaries for training, which is a rather small dataset. We also observe that, for 25 topics, not only the best predictive performance is archived, but also using movie results in an improvement. This improvement is very small, but we could systematically observe it in all the tests we run for this work. 
+
 \section{Discussion}
 %• Refer to the research questions you defined in your introduction.
 %• Any related work you are aware of?
