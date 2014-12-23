@@ -453,48 +453,42 @@ This is most likely due to the fact that we only used 100 movie plot summaries f
 We also observe that, for 25 topics, not only the best predictive performance is achieved, but this is further improved by using the movie scores.
 This improvement is very small, but we could systematically observe it in all the tests we run for this work. 
 
-We also wondered which words were the most correlated with either bad or good movie scores. In order to discover this, the hyperparameter $\eta$ can be multiplied with the topic definitions $\Phi$, and the resulting vector ordered by values. Table \ref{table:word_scores} shows a list with the 30 words with the highest positive correlation with movie scores.
+\subsection{High impact words}
+
+We also wondered which words were the most correlated with either bad or good movie scores. In order to discover this, the hyperparameter \(\eta\) can be multiplied with the topic definitions \(\Phi\), and the resulting vector ordered by values. Table~\ref{table:word_scores} shows a list with the 30 words with the highest positive correlation with movie scores.
 
 \begin{table}[ht!]
 \captionsetup{justification=centering}
-\caption{Caption here.}
+\caption{The 30 words with the highest positive correlation with movie scores (after stemmer).}
 \label{table:word_scores}
 \begin{center}
-\begin{tabular}{c|c}
-Word (after stemmer) & Score \\ \hline
-his & 2.86 \\
-he & 2.34 \\
-(empty) & 1.64 \\
-her & 1.48 \\
-who & 1.14 \\
-she & 0.882 \\
-they & 0.870 \\
-their & 0.843 \\
-him & 0.795 \\
-has & 0.788 \\
-be & 0.766 \\
-when & 0.750 \\
-from & 0.749 \\
-find & 0.541 \\
-one & 0.516 \\
-get & 0.500 \\
-up & 0.471 \\
-have & 0.466 \\
-life & 0.461 \\
-out & 0.449 \\
-after & 0.444 \\
-man & 0.406 \\
-take & 0.401 \\
-this & 0.388 \\
-new & 0.357 \\
-becom & 0.356 \\
-world & 0.351 \\
-into & 0.346 \\
-time & 0.346 \\
-them & 0.329 \\
+\begin{tabular}{c|ccc|c}
+Word & Score  & \hspace*{1cm} & Word & Score \\ \hline
+his &	 2.86 &&	get &	 0.500 \\
+he &	 2.34 &&	up &	 0.471 \\
+(empty) &1.64 &&	have &	 0.466 \\
+her &	 1.48 &&	life &	 0.461 \\
+who &	 1.14 &&	out &	 0.449 \\
+she &	 0.882 &&	after &	 0.444 \\
+they &	 0.870 &&	man &	 0.406 \\
+their &	 0.843 &&	take &	 0.401 \\
+him &	 0.795 &&	this &	 0.388 \\
+has &	 0.788 &&	new &	 0.357 \\
+be &	 0.766 &&	becom &	 0.356 \\
+when &	 0.750 &&	world &	 0.351 \\
+from &	 0.749 &&	into &	 0.346 \\
+find &	 0.541 &&	time &	 0.346 \\
+one &	 0.516 &&	them &	 0.329
 \end{tabular}
 \end{center}
 \end{table}
+
+Note how these words are very general in nature, and most of them can likely be found in every summary. 
+Some exceptions to this rule are present, such as the words ``world'' and ``becom'', which is result of stemming words like ``becoming'' and ``becomes''.
+We speculate that movies in which a character undergoes a series of changes, finally becoming a different person than he used to be, or where the entire world is the stage of the movie, are characteristics of high rated movies.
+
+But why do common words like ``his'' or ``he'' dominate the list? 
+Another hypothesis is that summaries which talk a lot about what the protagonist(s) do, tend to correlate with high rated movies.
 
 \section{Discussion}
 \label{sec:discussion}
