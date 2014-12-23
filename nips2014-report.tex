@@ -57,7 +57,7 @@ In recent years, several successes have been booked for applying semantic analys
 In this report we use those same techniques, but apply them to plot summaries of movies.
 Using these corpus of text we try to determine whether the contents of these summaries and the score these movies are rated with on the popular online movie database IMDb \cite{IMDb} are correlated.
 We do this by comparing the performance on two latent Dirichlet allocation models -- one with and another without using the scores.
-When we achieve better results when we are using the scores, we can conclude that there is a significant correlation between the scores and the texts of the summaries.
+If we achieve better results when we are using the scores, we can conclude that there is a significant correlation between the scores and the texts of the summaries.
 
 First we describe the characteristics of the problem and take a closer look at the data set in Section~\ref{sec:problem}.
 Next, we outline the model and Gibbs sampler in Section~\ref{sec:approach}.
@@ -117,7 +117,7 @@ To deal with this, we perform some basic manipulations on the dataset.
 To increase performance and speed up the algorithm, we prune and stem the dataset.
 
 First we prune the dataset, by discarding infrequent words. 
-We define a word to be infrequent when it only occurs in 1 summary. 
+We define a word to be infrequent when it only occurs in a single summary. 
 This gets rid of words like ``Donovan'' from the ``Indiana Jones an the Last Crusade'' summary, but keeps ``Indiana Jones'', which might have some relation with the score of the movie. It also helps diminishing the effects of overfitting.
 
 After that, we use a basic stemmer to reduce words to their stems.
@@ -149,6 +149,8 @@ The exact formula that is used to calculate the weighted average is kept secret,
 This weighted average can vary quite significantly with the arithmetic mean. 
 For example, the arithmatic mean of the scores of the movie ``The Amityville Asylum'' is 3.3, while its weighted average is 2.6.
 IMDb claims the weighted score provides a more accurate vote average than the arithmatic mean.
+
+Our final dataset contains around 700 movies. Each one of them includes its score and the word counts for both the plot summaries and the scripts. After prunning and stemming, there are around 36000 unique words in our dataset, and approximately 13 million words in total.
 
 \section{Approach}
 \label{sec:approach}
@@ -471,6 +473,24 @@ one &	 0.516 &&	them &	 0.329
 \end{center}
 \end{table}
 
+Finally, we re-run the experiment with the best results so far with several times more movies, and these results are shown in table \ref{tab:best}. This experiement confirms several facts: that our implementation indeed works, that there is still room for predictive improvement if more data is used, and that the using movie scores is indeed marginally better.
+
+\begin{table}[ht!]
+\captionsetup{justification=centering}
+\caption{Experiment results with $J=1$ and 300/60 movies as training/test set.\\Four MCMC chains were run and their results averaged.} 
+\label{tab:best}
+\begin{center}
+\begin{tabular}{c|cc|c}
+
+Metric &	LDA topics      & & 25 \\ \hline
+\multirow{2}{*}{Perplexity} &	\multirow{2}{*}{Using scores?} & No  & 3037 \\
+			  &             & Yes & \textbf{2960} \\ \hline
+\multirow{2}{*}{Accuracy$^{-1}$} & \multirow{2}{*}{Using scores?} & No  & 561 \\
+			      &          & Yes & \textbf{549} \\
+\end{tabular}
+\end{center}
+\end{table}
+
 Note how these words are very general in nature, and many can likely be found in every summary. 
 Some exceptions to this rule are present, such as the words ``world'' and ``becom'', the latter being the result of stemming words like ``becoming'' and ``becomes''.
 We speculate that movies in which a character undergoes a series of changes, finally becoming a different person than he used to be, or where the entire world is the stage of the movie, are more likely to become high rated movies.
@@ -482,10 +502,9 @@ Also noteworthy is the fact that male-oriented words appear higher in the list t
 Apparently, both ``his'' and ``he'' affect the score in a significantly bigger way than ``hers'' and ``she'' do. 
 Maybe this is a reflection of the fact that in many modern movies men feature more prominently than women, or a reflection of the audience of the movies in the data set: maybe men like to watch movies which center around men rather than movies that center around women.
 
-Finally, we noticed when compiling this list, that there are no words that have a negative effect on the score.
-In fact, most words were given a score of exactly \(0.0013665\). 
+Finally, we noticed when compiling this list that there are no words that have a negative effect on the score.
 This is probably another occurence of the ``long tail'' phenomenon which is frequently seen in the area of NLP: most words have almost no effect on the score.
-The fact that there are no words that correlate negatively is surprising though.
+The fact that there are no words that correlate negatively is surprising, though.
 This might be because the writers of the summaries are not supposed to inject their own opinion of the movie in the summary, but rather more objectively depict what occurs in the movie.
 Because of this, negative words could simply not occur in the data set.
 
@@ -512,11 +531,11 @@ This can be attributed to the fact the summaries are meant to be a neutral depic
 Words with a negative connotation could simply not occur in the data set.
 
 While working on this project, we noticed that the algorithm is very slow, and as a result can only handle small data sets.
-A larger data set could increase performance, but before that can realistically implemented one first needs to speed up the algorithm.
+A larger data set could increase performance, but before that can realistically implemented one first needs to speed up the algorithm. This could potentially be done making use of GPUs.
 
 If a sufficient speed up is achieved, one could also look at full movie scripts as input text, rather than plot summaries. 
 
-In conclusion, we can say that using scores is an improvement to the algorithm, but the summaries of movies still form a text corpus that is too big to effectively handle with current algorithms.
+In conclusion, we can say that using scores is an improvement to the algorithm, but the summaries of movies still form a text corpus that is too big to effectively be handled with our current implementation.
 
 \subsubsection*{Acknowledgements}
 %Use unnumbered third level headings for the acknowledgments. 
@@ -528,11 +547,11 @@ We would like to acknowledge Dr. Ivan Titov, the lecturer of the NLP class of Fa
 \subsubsection*{Work distribution}
 In this section we will outline the distribution of the work that was done for this project, as required by the assignment.
 
-Jorge S\'{a}ez G\'{o}mez did most of the coding and experimenting, with help from Roelof van der Heijden.
-The latter of whom wrote the most of this report, with help from Jorge where needed.
+Jorge S\'{a}ez G\'{o}mez did most of the coding, experimenting and mathematical derivations, with help from Roelof van der Heijden.
+The latter wrote the most of this report, with help from Jorge where needed.
 The presentation was written by both of them.
 
-Francesco Stablum, who was initially also a member of this group, did not contribute anything to this project.
+Francesco Stablum, who was initially also a member of this group, did not make significant contributions to this project.
 
 \vspace*{-3\baselineskip}
 \renewcommand{\refname}{\subsubsection*{References}} % Using "References" as the title of the bibliography section
