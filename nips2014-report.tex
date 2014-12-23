@@ -270,11 +270,12 @@ Thus, in order to implement a Gibbs sampler for this model, we have that:
 \[  \left[ \prod_{k' = 1}^K \frac{ \Gamma(W\beta)}{\Gamma(\beta)^W \Gamma(N_k'^{\backslash i} + \mathbb{I}(k' = k) + W\beta)} \prod_{w = 1}^W \Gamma(N_{k'w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta)\right] \]
 \[ \times\left[ \prod_{d = 1}^D \mathcal{N}\left(s_d\, \left| \vphantom{\frac{1}{1}} \right. \, \eta^T \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}, \sigma \right) \frac{\Gamma(K\alpha)}{\Gamma(\alpha)^K \Gamma(N_d^{\backslash i} + K \alpha)} \prod_{k' = 1}^K \Gamma(N_{dk'}^{\backslash i} + \mathbb{I}(k' = k) + \alpha) \right] \]
 
-Where we used $ \frac{N_{dk}}{N_d} \equiv \bar{z_d} $ and $\mathbb{I}(condition) = 1$ iff the condition evaluates to true, and zero otherwise. We can further simplify the previous expression by removing those factors that are constant across all possible values for $k$, resulting in the following final collapsed Gibbs sampler:
+Where we used $ \frac{N_{dk}}{N_d} \equiv \bar{z_d} $ and $\mathbb{I}(condition) = 1$ iff the condition evaluates to true, and zero otherwise. 
+We can further simplify the previous expression by removing those factors that are constant across all possible values for $k$, resulting in the following final collapsed Gibbs sampler:
 \begin{equation}
 \begin{gathered}
 P(z_{di} = k \mid Z^{\backslash{i}}, S, W, \dots) \propto \left[ \prod_{k'} \frac{\prod_w \Gamma(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta)}{\Gamma(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta)} \right]  \\
-\times \mathcal{N}\left(s_d\, \left| \vphantom{\frac{1}{1}} \right. \, \eta^T \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}, \sigma \right) \prod_{k'} \Gamma(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha),
+\times \mathcal{N}\left(s_d\, \left| \vphantom{\frac{1}{1}} \right. \, \eta^T \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}, \sigma \right) \prod_{k'} \Gamma(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha).
 \end{gathered}
 \end{equation}
 
@@ -473,12 +474,23 @@ one &	 0.516 &&	them &	 0.329
 \end{center}
 \end{table}
 
-Note how these words are very general in nature, and most of them can likely be found in every summary. 
-Some exceptions to this rule are present, such as the words ``world'' and ``becom'', which is result of stemming words like ``becoming'' and ``becomes''.
-We speculate that movies in which a character undergoes a series of changes, finally becoming a different person than he used to be, or where the entire world is the stage of the movie, are characteristics of high rated movies.
+Note how these words are very general in nature, and many can likely be found in every summary. 
+Some exceptions to this rule are present, such as the words ``world'' and ``becom'', the latter being the result of stemming words like ``becoming'' and ``becomes''.
+We speculate that movies in which a character undergoes a series of changes, finally becoming a different person than he used to be, or where the entire world is the stage of the movie, are more likely to become high rated movies.
 
-But why do common words like ``his'' or ``he'' dominate the list? 
+But why do common words like ``he'' or ``who'' dominate the list? 
 Another hypothesis is that summaries which talk a lot about what the protagonist(s) do, tend to correlate with high rated movies.
+
+Also noteworthy is the fact that male-oriented words appear higher in the list than female oriented words.
+Apparently, both ``his'' and ``he'' affect the score in a significantly bigger way than ``hers'' and ``she'' do. 
+Maybe this is a reflection of the fact that in many modern movies men feature more prominently than women, or a reflection of the audience of the movies in the data set: maybe men like to watch movies which center around men rather than movies that center around women.
+
+Finally, we noticed when compiling this list, that there are no words that have a negative effect on the score.
+In fact, most words were given a score of exactly \(0.0013665\). 
+This is probably another occurence of the ``long tail'' phenomenon which is frequently seen in the area of NLP: most words have almost no effect on the score.
+The fact that there are no words that correlate negatively is surprising though.
+This might be because the writers of the summaries are not supposed to inject their own opinion of the movie in the summary, but rather more objectively depict what occurs in the movie.
+Because of this, negative words could simply not occur in the data set.
 
 \section{Discussion}
 \label{sec:discussion}
@@ -488,14 +500,42 @@ Another hypothesis is that summaries which talk a lot about what the protagonist
 %• “Future work” (you do not need to do this work really J, but what would you change in the model / what experiments you would run / etc, if you would have a chance to do this? What other people should look into?
 %• Any thoughts / observation / wider implications
 
-Discussion
+In this project we set out to see if the words that are used in plot summaries are correlated to the score of the movie. 
+We did this by comparing two LDA models, one which does and one which does not use the score of the movie in its prediction.
+
+Although the performance of both versions is similar, the algorithm performs better when it does use the scores.
+The algorithm tends to overfit very quickly, as the best performance was observed when only 25 topics were used, compared to 50 or 100 topics.
+In this case, a perplexity score of 4005 and an inverse accuracy of 805 was achieved.
+
+The words which influence the prediction of the algorithm the most, are very common and can likely be found in every summary. 
+Also, male oriented words score higher than female oriented words, possibly because many modern movies center around men or because men watch more movies than women and score movies about men higher as well.
+
+And finally, there are no words which correlate negatively with the score of the movie. 
+This can be attributed to the fact the summaries are meant to be a neutral depiction of the events in the movie.
+Words with a negative connotation could simply not occur in the data set.
+
+While working on this project, we noticed that the algorithm is very slow, and as a result can only handle small data sets.
+A larger data set could increase performance, but before that can realistically implemented one first needs to speed up the algorithm.
+
+If a sufficient speed up is achieved, one could also look at full movie scripts as input text, rather than plot summaries. 
+
+In conclusion, we can say that using scores is an improvement to the algorithm, but the summaries of movies still form a text corpus that is too big to effectively handle with current algorithms.
 
 \subsubsection*{Acknowledgments}
 %Use unnumbered third level headings for the acknowledgments. 
 %All acknowledgments go at the end of the paper.
 %Do not include acknowledgments in the anonymized submission, only in the final paper. 
 
-Acknowledgments
+We would like to acknowledge Dr. Ivan Titov, the lecturer of the NLP class of Fall 2014, and his PhD student and teaching assistant Ehsan Khoddam Mohammadi, who helped us take the first steps in this project.
+
+\subsubsection*{Work distribution}
+In this section we will outline the distribution of the work that was done for this project, as required by the assignment.
+
+Jorge S\'{a}ez G\'{o}mez did most of the coding and experimenting, with help from Roelof van der Heijden.
+The latter of whom wrote the most of this report, with help from Jorge where needed.
+The presentation was written by both of them.
+
+Francesco Stablum, who was initially also a member of this group, did not contribute anything to this project.
 
 \vspace*{-3\baselineskip}
 \renewcommand{\refname}{\subsubsection*{References}} % Using "References" as the title of the bibliography section
