@@ -118,7 +118,7 @@ To increase performance and speed up the algorithm, we prune and stem the datase
 
 First we prune the dataset, by discarding infrequent words. 
 We define a word to be infrequent when it only occurs in 1 summary. 
-This gets rid of words like ``Donovan'' from the ``Indiana Jones an the Last Crusade'' summary, but keeps ``Indiana Jones'', which might have some relation with the score of the movie.
+This gets rid of words like ``Donovan'' from the ``Indiana Jones an the Last Crusade'' summary, but keeps ``Indiana Jones'', which might have some relation with the score of the movie. It also helps diminishing the effects of overfitting.
 
 After that, we use a basic stemmer to reduce words to their stems.
 This significantly reduces the number of different words that occur in the dataset, which increases the execution speed of our algorithm. 
@@ -127,7 +127,7 @@ We use the stemmer Lingua for this project \cite{lingua}.
 \subsection{Scores and score distribution}
 Each movie in the data set is ranked with a certain score from IMDb.
 These scores lie between 1 and 10 (inclusive) and are precise up to 1 decimal position.
-As is mentioned previously, these scores are submitted by users, however IMDb performs some normalization 
+Even if these scores are submitted by users, IMDb still performs some normalization on them.
 The distribution of scores in our data set can be seen in Figure~\ref{fig:scorehist}.
 
 \begin{figure}[ht!]
@@ -142,11 +142,11 @@ This is likely due to the fact that the scripts on IMSDb are requested and provi
 So a movie that is liked by many people will have a high chance to have its script being requested and supplied on IMSDb.
 This results in this skewed distribution: a movie on IMSDb will have a high chance to be liked by many people.
 
-Another thing to note is that IMDb uses a weighted average, instead of the arithmatic average for its score.
+Another thing to note is that IMDb uses a weighted average, instead of the arithmetic average for its score.
 According to IMDb, `various filters are applied to the raw data in order to eliminate and reduce attempts at ``vote stuffing'' by individuals more interested in changing the current rating of a movie than giving their true opinion of it.''
 The exact formula that is used to calculate the weighted average is kept secret, to be able to maintain its effectiveness. 
 
-This weighted average can vary quite significantly with the arithmatic mean. 
+This weighted average can vary quite significantly with the arithmetic mean. 
 For example, the arithmatic mean of the scores of the movie ``The Amityville Asylum'' is 3.3, while its weighted average is 2.6.
 IMDb claims the weighted score provides a more accurate vote average than the arithmatic mean.
 
@@ -215,16 +215,6 @@ P(\Phi, \Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma) = \left[ \prod_{k = 1}
 \end{gathered}
 \end{equation}
 
-%\[= \left[ \prod_{d} \Dir(\theta_d \mid \alpha) \prod_d \Mult(\phi_d \mid \theta_d )\Mult(w_d \mid \phi_d)\right]\]
-%\[\times \int_{\phi_0}\int_{\phi_1}\cdots \int_{\phi_k} P(\theta, s, z, \phi, W \mid \alpha, \beta, \eta, \sigma)\]
-
-%\[=\left[ \prod_k \Dir(\phi_k \mid \beta) \right] \left[ \prod_d \Dir(\theta_d \mid \alpha) \mathcal{N}(\eta^\top \bar{z}_d, \sigma) \prod_i^{N_d} \Mult(z) \right]\]
-%\[\times \left[  \prod_d \prod_i^{N_d} \Mult(w_{di} \mid \phi_{z_d})\right] \rightarrow \prod_d \prod_w \prod_k \left[ \Mult(w \mid \phi_k)^{N_{dk}}\right]\]
-
-%\[P(\theta, s, z, w \mid \alpha, \beta, \eta, \sigma) = \left[ \prod_k \int_{\phi_k} \Dir(\phi_k \mid \beta) \prod_d \prod_w \left[ \Mult(w \mid \phi_k)^{N_{dk}}\right] \right]\]
-
-%\[ = \left[ \prod_d \Dir(\theta_d \mid \alpha) \mathcal{N}(s_d \mid \eta^\top \bar{z}_d, \sigma) \prod_i^N \Mult(z_{di} \mid \theta_d) \right] \left[ \prod_k \frac{\Gamma(\beta) \Gamma(W\beta)}{\Gamma(N_k + W\beta)} \prod_w \frac{\Gamma(N_{kw}+\beta)}{\Gamma(\beta)}\right]\]
-
 The final collapsed SLDA will only give probabilities for \(S, Z\) and \(W\). 
 To achieve this, we will first integrate out the latent variable $\Phi$. The first thing that can be noticed is that every $\varphi_k$ is independently sampled, and thus can be integrated separately:
 \begin{equation}
@@ -277,16 +267,16 @@ P(Z \mid S, W, \dots) = \frac{P(S, W \mid Z, \dots) P(Z \mid \dots)}{P(S, W \mid
 where we did not write all model hyperparameters for the sake of clarity.
 Thus, in order to implement a Gibbs sampler for this model, we have that:
 \[P(z_{di} = k \mid Z^{\backslash{i}}, S, W, \alpha, \beta, \eta, \sigma) \propto P(z_{di} = k, Z^{\backslash{i}}, S, W, \alpha, \beta, \eta, \sigma) = \]
-More formulas still need to be written here... % TODO...
+\[  \left[ \prod_{k' = 1}^K \frac{ \Gamma(W\beta)}{\Gamma(\beta)^W \Gamma(N_k'^{\backslash i} + \mathbb{I}(k' = k) + W\beta)} \prod_{w = 1}^W \Gamma(N_{k'w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta)\right] \]
+\[ \times\left[ \prod_{d = 1}^D \mathcal{N}\left(s_d\, \left| \vphantom{\frac{1}{1}} \right. \, \eta^T \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}, \sigma \right) \frac{\Gamma(K\alpha)}{\Gamma(\alpha)^K \Gamma(N_d^{\backslash i} + K \alpha)} \prod_{k' = 1}^K \Gamma(N_{dk'}^{\backslash i} + \mathbb{I}(k' = k) + \alpha) \right] \]
 
-We can further simplify the previous expression by removing those factors that are constant across all possible values for $k$, resulting in the following final collapsed Gibbs sampler:
+Where we used $ \frac{N_{dk}}{N_d} \equiv \bar{z_d} $ and $\mathbb{I}(condition) = 1$ iff the condition evaluates to true, and zero otherwise. We can further simplify the previous expression by removing those factors that are constant across all possible values for $k$, resulting in the following final collapsed Gibbs sampler:
 \begin{equation}
 \begin{gathered}
 P(z_{di} = k \mid Z^{\backslash{i}}, S, W, \dots) \propto \left[ \prod_{k'} \frac{\prod_w \Gamma(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta)}{\Gamma(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta)} \right]  \\
 \times \mathcal{N}\left(s_d\, \left| \vphantom{\frac{1}{1}} \right. \, \eta^T \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}, \sigma \right) \prod_{k'} \Gamma(N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k) + \alpha),
 \end{gathered}
 \end{equation}
-where we used $ \frac{N_{dk}}{N_d} \equiv \bar{z_d} $. 
 
 The Gibbs sampler can also be expressed in log-space probabilities, in order to get a more numerically-stable implementation:
 \begin{equation*}
