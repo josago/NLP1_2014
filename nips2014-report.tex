@@ -355,12 +355,12 @@ This allows us to rewrite the above formula into:
 \eta_k \sum_d \left( \frac{N_{dk}}{N_d}  \right)^2 &=  \sum_d \frac{N_{dk}}{N_d} \left( s_d - \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right)\\
 \eta_k &= \frac{\sum_d \frac{N_{dk}}{N_d} \left( s_d - \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right)}{\sum_d \left( \frac{N_{dk}}{N_d}  \right)^2} \numberthis \label{eq:etaupdate}
 \end{align*}
-From our experiments, we noticed that trying to apply the formula as described in Equation~\ref{eq:etaupdate} as an update rule for \(\eta\) does not converge.
+From our experiments, we noticed that trying to apply the formula as described in Equation~\ref{eq:etaupdate} as an update rule for \(\eta\) does not converge. We theorize that this is due to the fact that every element within $\eta$ is dependent on the values for all other elements.
 Instead, the following update can be used:
 \begin{equation}
 \eta_k^{new} \leftarrow (1 - \gamma) \eta_k^{old} + \gamma \frac{\sum_d \frac{N_{dk}}{N_d} \left( s_d - \sum_{k' \ne k} \eta_{k'} \frac{N_{dk'}}{N_d} \right)}{\sum_d \left( \frac{N_{dk}}{N_d}  \right)^2 + \epsilon},
 \end{equation}
-where we used $1 \gg \gamma > 0$ in order for the previous series to converge and $1 \gg \epsilon > 0$ as a smoothing constant.
+where we used $1 \gg \gamma > 0$ in order for the previous series to converge and $1 \gg \epsilon > 0$ as a smoothing constant that helps avoiding infinities in the previous formula.
 
 \section{Experiments}
 \label{sec:experiments}
@@ -443,11 +443,11 @@ This is most likely due to the fact that we only used 100 movie plot summaries f
 We also observe that, for 25 topics, not only the best predictive performance is achieved, but this is further improved by using the movie scores.
 This improvement is very small, but we could systematically observe it in all the tests we run for this work. 
 
-We also wondered which words were the most correlated with either bad or good movie scores. In order to discover this, the hyperparameter $\eta$ can be multiplied with the topic definitions $\Phi$, and the resulting vector ordered by values. Table \ref{table:word_scores} shows a list with the 30 words with the highest positive correlation with movie scores.
+We also wondered which words were the most correlated with either bad or good movie scores. In order to discover this, the hyperparameter $\eta$ can be multiplied with the topic definitions $\Phi$, and the resulting vector ordered by values. Table \ref{table:word_scores} shows a list with the 30 words with the highest positive correlation with good movie scores. We noticed that a vast majority of words share the minimum score (0.00137), which suggests that most words do not convey any movie score information.
 
 \begin{table}[ht!]
 \captionsetup{justification=centering}
-\caption{Caption here.}
+\caption{An ordered list with the 30 words with the highest positive correlation\\with good movie scores. $K = 25$, $J = 1$ and 300 movies as training set.}
 \label{table:word_scores}
 \begin{center}
 \begin{tabular}{c|c}
