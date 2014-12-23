@@ -4,7 +4,7 @@
 \usepackage{tikz}
 \usepackage{url, caption}
 
-\title{Using scores to improve language modelling movie plot summaries}
+\title{Using scores to improve language modelling of movie plot summaries}
 
 \author{
 Jorge S\'{a}ez G\'{o}mez\\
@@ -45,7 +45,7 @@ Amsterdam, Postbox 94216, 1090 GE\\
 \maketitle
 
 \begin{abstract}
-In this work we explore the application of Bayesian topic models on corpora of movie plot summaries. We introduce the \textit{Supervised Latent Dirichlet Allocation} model and derive a collapsed Gibbs sampler for it, along with a couple of useful implementation hints. We created a custom movie database including language features from both plot summaries and scripts, along with movie scores. We find out that using the movie scores results in slightly lower perplexities for the testing sets, and suggest future paths to further extend our work.
+In this work we explore the application of Bayesian topic models on corpora of movie plot summaries. We introduce the \textit{Supervised Latent Dirichlet Allocation} model and derive a collapsed Gibbs sampler for it, along with a couple of useful implementation hints. We created a custom movie database including language features from both plot summaries and scripts, along with movie scores. We find that using the movie scores results in slightly lower perplexities for the testing sets, and suggest future paths to further extend our work.
 \end{abstract}
 
 \section{Introduction} 
@@ -55,9 +55,9 @@ In this work we explore the application of Bayesian topic models on corpora of m
 %• The very basic idea of the approach and why this is a reasonable approach for this problem?
 In recent years, several successes have been booked for applying semantic analysis on user comments of movies \cite{MovieRegression, PredictStars}.
 In this report we use those same techniques, but apply them to plot summaries of movies.
-Using these corpus of text we try to determine whether the contents of these summaries and the score these movies are rated with on the popular online movie database IMDb \cite{IMDb} are correlated.
-We do this by comparing the performance on two latent Dirichlet allocation models -- one with and another without using the scores.
-If we achieve better results when we are using the scores, we can conclude that there is a significant correlation between the scores and the texts of the summaries.
+Using these corpora of text we try to determine whether the contents of these summaries and the score these movies are rated with on the popular online movie database IMDb \cite{IMDb} are correlated.
+We do this by comparing the performance on two Latent Dirichlet Allocation models (LDA) -- one with and another without using the scores.
+If we achieve better results when we are using the scores, we can conclude that there is a correlation between the scores and the texts of the summaries.
 
 First we describe the characteristics of the problem and take a closer look at the data set in Section~\ref{sec:problem}.
 Next, we outline the model and Gibbs sampler in Section~\ref{sec:approach}.
@@ -81,7 +81,7 @@ These summaries have been written by users of the popular online movie database 
 They were gathered by crawling the IMDb website.
 Only movies which had their scripts available on the online script website \url{IMSDb.com} \cite{IMSDb} at time of this writing were selected, to allow for an easy comparison when using the full script instead of summaries in a future study.
 
-This is fundamentally different from movie reviews, as the author is not supposed to convey his or her own opinion of the movie in the summary.
+These corpora are fundamentally different from movie reviews, as the author is not supposed to convey his or her own opinion of the movie in the summary.
 However, this can obviously never be fully prevented, since the author has seen the movie in question and is willing to spend time and effort to write the summary.
 In this light we make the following assumptions.
 
@@ -92,7 +92,7 @@ In this light we make the following assumptions.
 Only if these assumptions hold, can we try to find a correlation between the summary and the score of the movie.
 
 An example plot summary from IMDb can be found below. 
-It is from the movie Big Fish (2003) and is written by a user who wanted to remain anonymous.
+It is from the movie ``Big Fish'' (2003) and is written by a user who wanted to remain anonymous.
 \begin{quotation}
   \emph{The story revolves around a dying father and his son, who is trying to learn more about his dad by piecing together the stories he has gathered over the years.
   The son winds up re-creating his father's elusive life in a series of legends and myths inspired by the few facts he knows.
@@ -101,7 +101,7 @@ It is from the movie Big Fish (2003) and is written by a user who wanted to rema
 \end{quotation}
 
 However, a different summary may have different properties.
-Below is another plot summary, about the movie ``Indiana Jones and the Last Crusade'', written by IMDb user commanderblue.
+Below is another plot summary, about the movie ``Indiana Jones and the Last Crusade'' (1989), written by IMDb user commanderblue.
 \begin{quotation}
   \emph{Indiana Jones, famed adventurer and archaeologist acquires a diary that holds clues and a map with no names to find the mysterious Holy Grail -- which was sent from his father, Dr. Henry Jones, in Italy. 
   Upon hearing from a private collector, Walter Donavan, that the mission for the Holy Grail went astray with the disappearance of his father, Indiana Jones and museum curator Marcus Brody venture to Italy in search of Indy's father. 
@@ -111,17 +111,17 @@ Below is another plot summary, about the movie ``Indiana Jones and the Last Crus
 \end{quotation}
 
 Among other differences, this summary uses more proper pronouns, whose uniqueness could be difficult for our algorithm to handle properly.
-To deal with this, we perform some basic manipulations on the dataset.
+To deal with this, we perform some basic manipulations on the data set.
 
 \subsection{Data manipulation}
-To increase performance and speed up the algorithm, we prune and stem the dataset.
+To increase performance and speed up the algorithm, we prune and stem the data set.
 
-First we prune the dataset, by discarding infrequent words. 
+First we prune the data set, by discarding infrequent words. 
 We define a word to be infrequent when it only occurs in a single summary. 
-This gets rid of words like ``Donovan'' from the ``Indiana Jones an the Last Crusade'' summary, but keeps ``Indiana Jones'', which might have some relation with the score of the movie. It also helps diminishing the effects of overfitting.
+This gets rid of words like ``Donovan'' from the ``Indiana Jones an the Last Crusade'' summary, but keeps ``Indiana'' and ``Jones'', which might have some relation with the score of the movie. It also helps to diminish the effects of overfitting.
 
 After that, we use a basic stemmer to reduce words to their stems.
-This significantly reduces the number of different words that occur in the dataset, which increases the execution speed of our algorithm. 
+This significantly reduces the number of different words that occur in the data set, which increases the execution speed of our algorithm. 
 We use the stemmer Lingua for this project \cite{lingua}.
 
 \subsection{Scores and score distribution}
@@ -142,7 +142,7 @@ This is likely due to the fact that the scripts on IMSDb are requested and provi
 So a movie that is liked by many people will have a high chance to have its script being requested and supplied on IMSDb.
 This results in this skewed distribution: a movie on IMSDb will have a high chance to be liked by many people.
 
-Another thing to note is that IMDb uses a weighted average, instead of the arithmetic average for its score.
+Another thing to note is that IMDb uses a weighted average, instead of the arithmetic mean to calculate a movie's score.
 According to IMDb, `various filters are applied to the raw data in order to eliminate and reduce attempts at ``vote stuffing'' by individuals more interested in changing the current rating of a movie than giving their true opinion of it.''
 The exact formula that is used to calculate the weighted average is kept secret, to be able to maintain its effectiveness. 
 
@@ -150,7 +150,21 @@ This weighted average can vary quite significantly with the arithmetic mean.
 For example, the arithmatic mean of the scores of the movie ``The Amityville Asylum'' is 3.3, while its weighted average is 2.6.
 IMDb claims the weighted score provides a more accurate vote average than the arithmatic mean.
 
-Our final dataset contains around 700 movies. Each one of them includes its score and the word counts for both the plot summaries and the scripts. After prunning and stemming, there are around 36000 unique words in our dataset, and approximately 13 million words in total.
+Our final data set contains around 700 movies. Each one of them includes its score and the word counts for both the plot summaries and the scripts. After prunning and stemming, there are around 36000 unique words in our data set, and approximately 13 million words in total.
+
+\begin{table}[ht!]
+\caption{Characteristics of the data set.}
+\label{table:data_set}
+\begin{center}
+\begin{tabular}{lr}
+Total number of tokens & \(12.7\cdot 10^6\)\\
+Number of unique tokens & \(35000\)\\
+Average number of tokens within a movie summary & \(75\)\\
+Average number of tokens within a movie script & \(18000\)
+\end{tabular}
+\end{center}
+\end{table}
+
 
 \section{Approach}
 \label{sec:approach}
@@ -160,7 +174,7 @@ In this section we explain our model, and show the derivations we use for the Gi
 
 \subsection{Model}
 In this section we describe the extended topic based model we used.
-It is taken from \cite{SLDA}.
+It is taken from Blei \& McAuliffe \cite{SLDA}.
 
 The generative version of LDA is as follows:
 \begin{enumerate}
@@ -220,7 +234,7 @@ P(\Phi, \Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma) = \left[ \prod_{k = 1}
 The final collapsed SLDA will only give probabilities for \(S, Z\) and \(W\). 
 To achieve this, we will first integrate out the latent variable $\Phi$. The first thing that can be noticed is that every $\varphi_k$ is independently sampled, and thus can be integrated separately:
 \begin{equation}
-P(\Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma) = \int_{\phi_0}\int_{\phi_1}\cdots \int_{\phi_K} P(\Phi, \Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma)
+P(\Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma) = \int_{\phi_1}\int_{\phi_2}\cdots \int_{\phi_K} P(\Phi, \Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma)
 \end{equation}
 At this point we need to rewrite part of Equation~\ref{eq:prodpart} in order to be able to continue the derivation:
 \begin{equation}
@@ -242,7 +256,7 @@ P(\Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma) = \left[ \prod_{k = 1}^K \fr
 \end{equation}
 We can proceed in an analogous fashion in order to integrate out the latent $\Theta$ parameter:
 \begin{equation}
-P(S, Z, W \mid \alpha, \beta, \eta, \sigma) = \int_{\theta_0}\int_{\theta_1}\dots \int_{\theta_D} p(\Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma)
+P(S, Z, W \mid \alpha, \beta, \eta, \sigma) = \int_{\theta_1}\int_{\theta_2}\cdots \int_{\theta_D} p(\Theta, S, Z, W \mid \alpha, \beta, \eta, \sigma)
 \end{equation}
 This gives us:
 \begin{equation}
@@ -272,7 +286,7 @@ Thus, in order to implement a Gibbs sampler for this model, we have that:
 \[  \left[ \prod_{k' = 1}^K \frac{ \Gamma(W\beta)}{\Gamma(\beta)^W \Gamma(N_k'^{\backslash i} + \mathbb{I}(k' = k) + W\beta)} \prod_{w = 1}^W \Gamma(N_{k'w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta)\right] \]
 \[ \times\left[ \prod_{d = 1}^D \mathcal{N}\left(s_d\, \left| \vphantom{\frac{1}{1}} \right. \, \eta^T \frac{N_{d{k'}}^{\backslash i} + \mathbb{I}(k' = k)}{N_d}, \sigma \right) \frac{\Gamma(K\alpha)}{\Gamma(\alpha)^K \Gamma(N_d^{\backslash i} + K \alpha)} \prod_{k' = 1}^K \Gamma(N_{dk'}^{\backslash i} + \mathbb{I}(k' = k) + \alpha) \right] \]
 
-Where we used $ \frac{N_{dk}}{N_d} \equiv \bar{z_d} $ and $\mathbb{I}(condition) = 1$ iff the condition evaluates to true, and zero otherwise. We can further simplify the previous expression by removing those factors that are constant across all possible values for $k$, resulting in the following final collapsed Gibbs sampler:
+Where we used $ \frac{N_{dk}}{N_d} \equiv \bar{z_d} $ and $\mathbb{I}(\text{condition}) = 1$ iff the condition evaluates to true, and zero otherwise. We can further simplify the previous expression by removing those factors that are constant across all possible values for $k$, resulting in the following final collapsed Gibbs sampler:
 \begin{equation}
 \begin{gathered}
 P(z_{di} = k \mid Z^{\backslash{i}}, S, W, \dots) \propto \left[ \prod_{k'} \frac{\prod_w \Gamma(N_{{k'}w}^{\backslash i} + \mathbb{I}(k' = k \wedge w = w_{di}) + \beta)}{\Gamma(N_{k'}^{\backslash i} + \mathbb{I}(k' = k) + W \beta)} \right]  \\
@@ -302,7 +316,7 @@ We apply this to $\sum_k \sum_w \log \Gamma(N_{kw} + \beta)$, which then becomes
 &=\sum_{k, w} -\gamma (N_{kw} + \beta) -\log (N_{kw} + \beta) + \sum_{j=1}^\infty \frac{N_{kw} +\beta}{j}-\log\left(1 + \frac{N_{kw} + \beta}{j}\right)\\
 &=-\gamma (N + KW\beta) - \sum_{k,w} \log (N_{kw}+\beta) - \sum_{j=1}^\infty  \frac{N_{kw} + \beta}{j} - \log\left(\frac{N_{kw} + \beta+j}{j}\right)\\
 \intertext{
-Note that the term \(-\gamma (N + KW\beta)\) serves as a normalisation constant for this dataset.
+Note that the term \(-\gamma (N + KW\beta)\) serves as a normalisation constant for this data set.
 Since we do not need the exact probabilities but only the proportional probabilities during the algorithms execution, we can discard those terms.
 }
 &\Rightarrow - \sum_{k,w} \log (N_{kw}+\beta) - \sum_{j=1}^\infty  \frac{N_{kw} + \beta}{j} - \log\left(\frac{N_{kw} + \beta+j}{j}\right)\\
@@ -312,7 +326,7 @@ Since we do not need the exact probabilities but only the proportional probabili
 &=\sum_{j=1}^\infty \left( \frac{N + KW\beta}{j} +KW\log(j)\right) - \sum_{k,w} \sum_{j=0}^\infty \log(N_{kw} + \beta + j)
 \end{align*}
 
-Again, the term \(\sum_{j=1}^\infty  \frac{N + KW\beta}{j} +KW\log(j)\) is a constant for this dataset, so we can discard it.
+Again, the term \(\sum_{j=1}^\infty  \frac{N + KW\beta}{j} +KW\log(j)\) is a constant for this data set, so we can discard it.
 This results in the following proportionality:
 \begin{align}
   \sum_{k,w} \log \Gamma(N_{kw} + \beta) &\propto  -\sum_{k,w}\sum_{j=0}^\infty \log (N_{kw} + \beta + j)
@@ -366,7 +380,7 @@ where we used $1 \gg \gamma > 0$ in order for the previous series to converge an
 
 \section{Experiments}
 \label{sec:experiments}
-%• Any details about experiments (dataset sizes, parameter selection, etc)
+%• Any details about experiments (data set sizes, parameter selection, etc)
 %• Results
 %• Analysis (discussion of results / visualization / findings / etc)
 
@@ -374,7 +388,7 @@ For our experiments we chose to use two different performance measures: perplexi
 
 \subsection{Perplexity}
 
-The perplexity measure is commonly used within LDA literature, and we include it for reference purposes. 
+The perplexity measure is commonly used within LDA literature \cite{perplexity}, and we include it for reference purposes . 
 It is defined as follows:
 \begin{equation}
 \text{Perplexity} \equiv \exp \left\{ -\frac{1}{N} \sum_{i = 1}^N \log P(x_i)  \right\},
@@ -409,7 +423,7 @@ Our findings are summarized in Table~\ref{table:J}:
 \label{table:J}
 \begin{center}
 \begin{tabular}{r|cccccc}
-J               & 1 & 2 & 3 & 4 & 5 & 6 \\ \hline
+\(J\)               & 1 & 2 & 3 & 4 & 5 & 6 \\ \hline
 Perplexity      & 4100 & 4125 & 4082 & 4251 & 3754 & 3881 \\
 Accuracy$^{-1}$ & 858 & 871 & 823 & 863 & 877 & 815 \\
 \end{tabular}
@@ -441,7 +455,7 @@ Metric &	LDA topics      & & 25 & 50 & 100 \\ \hline
 \end{table}
 
 We can see how all models start overfitting with, at least, more than 25 topics.
-This is most likely due to the fact that we only used 100 movie plot summaries for training, which is a rather small dataset. 
+This is most likely due to the fact that we only used 100 movie plot summaries for training, which is a rather small data set. 
 We also observe that, for 25 topics, not only the best predictive performance is achieved, but this is further improved by using the movie scores.
 This improvement is very small, but we could systematically observe it in all the tests we run for this work. 
 
@@ -473,24 +487,6 @@ one &	 0.516 &&	them &	 0.329
 \end{center}
 \end{table}
 
-Finally, we re-run the experiment with the best results so far with several times more movies, and these results are shown in table \ref{tab:best}. This experiement confirms several facts: that our implementation indeed works, that there is still room for predictive improvement if more data is used, and that the using movie scores is indeed marginally better.
-
-\begin{table}[ht!]
-\captionsetup{justification=centering}
-\caption{Experiment results with $J=1$ and 300/60 movies as training/test set.\\Four MCMC chains were run and their results averaged.} 
-\label{tab:best}
-\begin{center}
-\begin{tabular}{c|cc|c}
-
-Metric &	LDA topics      & & 25 \\ \hline
-\multirow{2}{*}{Perplexity} &	\multirow{2}{*}{Using scores?} & No  & 3037 \\
-			  &             & Yes & \textbf{2960} \\ \hline
-\multirow{2}{*}{Accuracy$^{-1}$} & \multirow{2}{*}{Using scores?} & No  & 561 \\
-			      &          & Yes & \textbf{549} \\
-\end{tabular}
-\end{center}
-\end{table}
-
 Note how these words are very general in nature, and many can likely be found in every summary. 
 Some exceptions to this rule are present, such as the words ``world'' and ``becom'', the latter being the result of stemming words like ``becoming'' and ``becomes''.
 We speculate that movies in which a character undergoes a series of changes, finally becoming a different person than he used to be, or where the entire world is the stage of the movie, are more likely to become high rated movies.
@@ -508,6 +504,25 @@ The fact that there are no words that correlate negatively is surprising, though
 This might be because the writers of the summaries are not supposed to inject their own opinion of the movie in the summary, but rather more objectively depict what occurs in the movie.
 Because of this, negative words could simply not occur in the data set.
 
+Now we re-run the experiment with the best settings so far with several times more movies, and these results are shown in table \ref{tab:best}. 
+This experiment confirms several facts: that our implementation indeed works, that there is still room for predictive improvement if more data is used, and that the using movie scores is indeed marginally better.
+
+\begin{table}[ht!]
+\captionsetup{justification=centering}
+\caption{Experiment results with $J=1$ and 300/60 movies as training/test set.\\Four MCMC chains were run and their results averaged.} 
+\label{tab:best}
+\begin{center}
+\begin{tabular}{c|cc|c}
+
+Metric &	LDA topics      & & 25 \\ \hline
+\multirow{2}{*}{Perplexity} &	\multirow{2}{*}{Using scores?} & No  & 3037 \\
+			  &             & Yes & \textbf{2960} \\ \hline
+\multirow{2}{*}{Accuracy$^{-1}$} & \multirow{2}{*}{Using scores?} & No  & 561 \\
+			      &          & Yes & \textbf{549} \\
+\end{tabular}
+\end{center}
+\end{table}
+
 \section{Discussion}
 \label{sec:discussion}
 %• Refer to the research questions you defined in your introduction.
@@ -521,9 +536,9 @@ We did this by comparing two LDA models, one which does and one which does not u
 
 Although the performance of both versions is similar, the algorithm performs better when it does use the scores.
 The algorithm tends to overfit very quickly, as the best performance was observed when only 25 topics were used, compared to 50 or 100 topics.
-In this case, a perplexity score of 4005 and an inverse accuracy of 805 was achieved.
+In this case, a perplexity score of 4005 and an inverse accuracy of 805 was achieved, with 100/20 movies as training/test set.
 
-The words which influence the prediction of the algorithm the most, are very common and can likely be found in every summary. 
+The words which influence the prediction of the algorithm the most are very common and can likely be found in every summary. 
 Also, male oriented words score higher than female oriented words, possibly because many modern movies center around men or because men watch more movies than women and score movies about men higher as well.
 
 And finally, there are no words which correlate negatively with the score of the movie. 
@@ -535,7 +550,7 @@ A larger data set could increase performance, but before that can realistically 
 
 If a sufficient speed up is achieved, one could also look at full movie scripts as input text, rather than plot summaries. 
 
-In conclusion, we can say that using scores is an improvement to the algorithm, but the summaries of movies still form a text corpus that is too big to effectively be handled with our current implementation.
+In conclusion, we can say that using scores is an improvement to the algorithm, but the summaries of movies still form a text corpus that is too big to be handled effectively with our current implementation.
 
 \subsubsection*{Acknowledgements}
 %Use unnumbered third level headings for the acknowledgments. 
@@ -592,6 +607,11 @@ Francesco Stablum, who was initially also a member of this group, did not make s
   Geogre Boros, Victor H. Moll,
   \emph{Irresistible Integrals: symbolics, analysis and experiments in the evaluation of integrals};
   Cambridge University Press (2004)
+  
+\bibitem{perplexity}
+  Arthur Asuncion, Max Welling et al.; 
+  \emph{On smoothing and inference for topic models};
+  In Proceedings of the 25th Conference on Uncertainty in Artificial Intelligence (2009)
 
 \end{thebibliography}
 
