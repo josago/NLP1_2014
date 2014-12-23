@@ -248,10 +248,7 @@ class CSLDA:
         self.D = Strain.shape[0]
         
         print "Training CSLDA model with %d topics, %d documents and %d unique words..." % (self.K, self.D, self.W)
-        
-        perplex = [] # Perplexity measure.
-        inv_acc = [] # Average inverse accuracy measure.
-        
+
         # Allocate data structures:
         
         self.N_skw = np.zeros((num_samples, self.K, self.W), dtype = float)
@@ -281,15 +278,11 @@ class CSLDA:
                 self.N_sk[sample]  = np.copy(N_k)
                 
                 sample += 1
-             
-                #(a, b) = self.test(Stest, Wtest, num_burn_in, 1, 1, sample)
                 
-                #perplex.append(a)
-                #inv_acc.append(b)
-                
-                #print "[%d, %f, %f]," % (iteration + 1, a, b) # Print the test results.
-        
-        #return (perplex, inv_acc)
+        phi    = np.divide(np.reshape(self.N_skw[sample - 1] + self.beta, (self.K, self.W)), np.repeat(np.reshape(self.N_sk[sample - 1] + self.W * self.beta, (-1, 1)), self.W, axis = 1))
+        scores = np.reshape(self.eta, (1, -1)).dot(phi).flatten() 
+
+        return (scores, np.argsort(scores))
 
     def test(self, S, W, num_burn_in, num_skip, num_samples, num_samples_train):
         Dtrain = self.D
@@ -350,15 +343,15 @@ class CSLDA:
 # Sort movies by scores and select a few from the worst ones, the best ones, and the ones in the middle:
 
 idx_sort   = np.argsort(S)
-idx_movies = rd.permutation(np.append(np.append(idx_sort[0 : 40], idx_sort[-41 : -1]), idx_sort[S.shape[0] / 2 - 20 : S.shape[0] / 2 + 20]))
+idx_movies = rd.permutation(np.append(np.append(idx_sort[0 : 120], idx_sort[-121 : -1]), idx_sort[S.shape[0] / 2 - 60 : S.shape[0] / 2 + 60]))
 
-# For the time being we will just use 120 movie summaries (100 training / 20 testing):
+# For the time being we will just use 360 movie summaries (300 training / 60 testing):
 
-Strain = S[idx_movies[ : 100]]
-Stest  = S[idx_movies[100 : ]]
+Strain = S[idx_movies[ : 300]]
+Stest  = S[idx_movies[300 : ]]
 
-Wtrain = Wsummary[idx_movies[ : 100]]
-Wtest  = Wsummary[idx_movies[100 : ]]
+Wtrain = Wsummary[idx_movies[ : 300]]
+Wtest  = Wsummary[idx_movies[300 : ]]
 
 # Train and test (on-line) the CSLDA model:
 
@@ -369,16 +362,18 @@ num_burn_in = 20
 num_skip    = 4
 num_samples = 5
 
-# Tabs (avg. 3 chains): J = 1, 2, 3, 4, 5, 6
-# (4100, 858)
-# (4125, 871)
-# (4082, 823)
-# (4251, 863)
-# (3754, 877)
-# (3881, 815)
-
 cslda = CSLDA(use_scores, K, W)
-cslda.train(Strain, Wtrain, Stest, Wtest, num_burn_in, num_skip, num_samples)
+(scores, idx_sort) = cslda.train(Strain, Wtrain, Stest, Wtest, num_burn_in, num_skip, num_samples)
+
+for i in range(0, 30):
+    print (idx_sort[i], scores[idx_sort[i]])
+    
+for i in range(W / 2 - 15, W / 2 + 15):
+    print (idx_sort[i], scores[idx_sort[i]])
+    
+for i in range(W - 30, W):
+    print (idx_sort[i], scores[idx_sort[i]])
+
 print cslda.test(Stest, Wtest, num_burn_in, num_skip, num_samples, num_samples)
 
 # Plot the results:
